@@ -7,20 +7,26 @@ export default function AmpCab({
   faustCompiler,
   faustFactory,
   onPluginReady,   // passed from App.jsx
-  onCabReady       // passed from App.jsx
+  onCabReady,       // passed from App.jsx
+  cabinetConvolver
 }) {
   const [ampConvolver,   setAmpConvolver]   = useState(null)
   const [cabConvolver,   setCabConvolver]   = useState(null)
 
   // Called by TubeAmp when its DSP node + preamp convolver are ready
-  const handleAmpReady = ([preampConvolver, faustNode]) => {
-    // Wire them together internally
-    faustNode.connect(preampConvolver)
-    setAmpConvolver(preampConvolver)
+  // const handleAmpReady = ([preampConvolver, faustNode]) => {
+  //   // Wire them together internally
+  //   faustNode.connect(preampConvolver)
+  //   setAmpConvolver(preampConvolver)
 
-    // **Forward** the event up to App
-    if (onPluginReady) onPluginReady([preampConvolver, faustNode])
-  }
+  //   // **Forward** the event up to App
+  //   if (onPluginReady) onPluginReady([preampConvolver, faustNode])
+  // }
+
+  const handleAmpReady = ([preampConv, faustNode]) => {
+    faustNode.connect(preampConv);
+    onPluginReady([preampConv, faustNode]);
+  };
 
   // Called by Cabinet when its IR convolver is ready
   const handleCabReady = convolverNode => {
@@ -30,16 +36,6 @@ export default function AmpCab({
     if (onCabReady) onCabReady(convolverNode)
   }
 
-  // Once both ends exist, wire amp → cab → destination
-  // useEffect(() => {
-  //   if (!audioContext || !ampConvolver || !cabConvolver) return
-  //   ampConvolver.disconnect()
-  //   cabConvolver.disconnect()
-
-  //   ampConvolver
-  //     .connect(cabConvolver)
-  //     .connect(audioContext.destination)
-  // }, [audioContext, ampConvolver, cabConvolver])
 
   return (
     <div className="AmpCab">
@@ -53,7 +49,8 @@ export default function AmpCab({
       />
       <Cabinet
         audioContext={audioContext}
-        onCabReady={handleCabReady}
+        // onCabReady={handleCabReady}
+        convolver={cabinetConvolver}
       />
     </div>
   )

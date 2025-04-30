@@ -20,17 +20,18 @@ export default function App() {
   // ——— TubeAmp→Cabinet ends ———
   const [tubeNode,           setTubeNode]           = useState(null);
   const [preampConvolver,    setPreampConvolver]    = useState(null);
-  const [cabinetConvolver,   setCabinetConvolver]   = useState(null);
+  // const [cabinetConvolver,   setCabinetConvolver]   = useState(null);
 
-  const chainReady = Boolean(
-       tubeNode && preampConvolver && cabinetConvolver
-     );
+  // const chainReady = Boolean(
+  //      tubeNode && preampConvolver && cabinetConvolver
+  //    );
     
 
   // ——— Sample player refs & UI ———
   const masterGainRef = useRef(null);
   const bufRef        = useRef(null);
   const srcRef        = useRef(null);
+  const cabinetConvolverRef = useRef(null);
 
   const [loaded,  setLoaded]  = useState(false);
   const [running, setRunning] = useState(false);
@@ -48,6 +49,8 @@ export default function App() {
     master.connect(ctx.destination);
     masterGainRef.current = master;
 
+    const cab = ctx.createConvolver();
+    cabinetConvolverRef.current = cab;
     // init Faust
     instantiateFaustModuleFromFile(libfaustUrl)
       .then(Module => {
@@ -100,7 +103,7 @@ export default function App() {
     console.log('▶️ playSample, chain is:', {
       tubeNode,
       preampConvolver,
-      cabinetConvolver,
+      // cabinetConvolver,
       master: masterGainRef.current
     });
     
@@ -124,7 +127,7 @@ export default function App() {
     src
     .connect(tubeNode)
     .connect(preampConvolver)
-    .connect(cabinetConvolver)
+    .connect(cabinetConvolverRef.current)
     .connect(masterGainRef.current);
 
     srcRef.current = src;
@@ -188,7 +191,7 @@ export default function App() {
             setTubeNode(faustNode);
           }}
           // get the final cabinet ConvolverNode
-          onCabReady={setCabinetConvolver}
+          cabinetConvolver={cabinetConvolverRef.current}
         />
       )}
     </main>

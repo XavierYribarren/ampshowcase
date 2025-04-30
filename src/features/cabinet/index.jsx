@@ -1,70 +1,51 @@
+// src/features/cabinet/Cabinet.jsx
 import React, { useState, useEffect } from 'react';
 import './Cabinet.css';
 
-const positions = ['center', 'cone', 'edge'];
-const irs = ['1on-preshigh', '1on-pres8', '1on-pres5'];
+const positions = ['center','cone','edge'];
+const irs       = ['1on-preshigh','1on-pres8','1on-pres5'];
 
-const cabConvolverFromArrayBuffer = (ctx, buffer, cb) => {
-  const c = new ConvolverNode(ctx);
-  ctx.decodeAudioData(buffer, decoded => {
-    c.buffer = decoded;
-    if (cb) cb(c);
-  });
-};
-
-export default function Cabinet({ audioContext, onCabReady }) {
+export default function Cabinet({ audioContext, convolver }) {
   const [position, setPosition] = useState(0);
 
-  const changePosition = () => {
-    setPosition(prev =>
-      prev === positions.length - 1 ? 0 : prev + 1
-    );
-  };
+  // cycle positions
+  const changePosition = () =>
+    setPosition(p => (p+1)%positions.length);
 
-  const onIRInput = event => {
-    if (audioContext && event.target.files?.length) {
-      event.target.files[0]
-        .arrayBuffer()
-        .then(buffer =>
-          cabConvolverFromArrayBuffer(audioContext, buffer, onCabReady)
-        )
-        .catch(err => console.error('IR file load error:', err));
+  // file-upload handler
+  const onIRInput = e => {
+    if (audioContext && e.target.files?.length) {
+      e.target.files[0].arrayBuffer()
+        .then(buf => audioContext.decodeAudioData(buf, decoded => {
+          convolver.buffer = decoded;
+        }))
+        .catch(console.error);
     }
   };
-  const url = `${import.meta.env.BASE_URL}ir/${irs[position]}.wav`;
-  // console.log(url)
 
+  // on position change, fetch the new IR and swap buffer
   useEffect(() => {
     if (!audioContext) return;
-
-    fetch(url)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.arrayBuffer();
-      })
-      .then(buffer =>
-        cabConvolverFromArrayBuffer(audioContext, buffer, onCabReady)
-      )
-      .catch(err => console.error('Cabinet IR load error:', err));
-  }, [url, audioContext, onCabReady]);
+    const name = irs[position] + '.wav';
+    fetch(`/ir/${name}`)
+      .then(res => res.arrayBuffer())
+      .then(buf => audioContext.decodeAudioData(buf, decoded => {
+        convolver.buffer = decoded;
+      }))
+      .catch(err => console.error('IR load error:', err));
+  }, [position, audioContext, convolver]);
 
   return (
     <>
       <div className="cabinet" onClick={changePosition}>
-        <img
-          className="speaker"
-          alt="Guitar Speaker"
-          src={`${import.meta.env.BASE_URL}speaker.png`}
-        />
-        <img
-          className={`mic mic--${positions[position]}`}
-          alt="Microphone"
-          src={`${import.meta.env.BASE_URL}shure_sm57.png`}
-        />
+        <img className="speaker" src="/speaker.png" alt="Speaker"/>
+        <img className={`mic mic--${positions[position]}`}
+             src="/shure_sm57.png" alt="Mic" />
       </div>
       <div className="ir-input">
         <label htmlFor="ir">Choose your IR</label>
-        <input type="file" id="ir" accept="audio/*" onChange={onIRInput} />
+        <input type="file" id="ir" accept="audio/*"
+               onChange={onIRInput} />
       </div>
     </>
   );
