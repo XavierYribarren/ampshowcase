@@ -10,6 +10,7 @@ import {
 // Vite will give us the final URL at runtime
 import libfaustUrl from '@grame/faustwasm/libfaust-wasm/libfaust-wasm.js?url';
 import './App.css';
+import Scene from './features/canvas/Scene';
 
 export default function App() {
   // ——— Audio engine & Faust ———
@@ -21,7 +22,8 @@ export default function App() {
   const [tubeNode,           setTubeNode]           = useState(null);
   const [preampConvolver,    setPreampConvolver]    = useState(null);
   // const [cabinetConvolver,   setCabinetConvolver]   = useState(null);
-
+  const [bypass, setBypass] = useState(false);
+  const [isChainReady, setChainReady] = useState(false)
   // const chainReady = Boolean(
   //      tubeNode && preampConvolver && cabinetConvolver
   //    );
@@ -32,6 +34,10 @@ export default function App() {
   const bufRef        = useRef(null);
   const srcRef        = useRef(null);
   const cabinetConvolverRef = useRef(null);
+
+  const destRef     = useRef(null)  // MediaStreamAudioDestinationNode
+  const audioElRef = useRef(null)   // HTMLAudioElement
+
 
   const [loaded,  setLoaded]  = useState(false);
   const [running, setRunning] = useState(false);
@@ -46,7 +52,7 @@ export default function App() {
     // master gain node (final out)
     const master = ctx.createGain();
     master.gain.value = gain;
-    master.connect(ctx.destination);
+    // master.connect(ctx.destination);
     masterGainRef.current = master;
 
     const cab = ctx.createConvolver();
@@ -94,53 +100,132 @@ export default function App() {
   }
 
   // 4) Play the sample _through_ your AmpCab chain
-  async function playSample() {
-    if (!bufRef.current || running || !audioContext) return;
+  // async function playSample() {
+  //   if (!bufRef.current || running || !audioContext) return;
   
-    // <-- this line is crucial:
+  //   // <-- this line is crucial:
+  //   await audioContext.resume();
+  //   masterGainRef.current.disconnect();
+  //   console.log('▶️ playSample, chain is:', {
+  //     tubeNode,
+  //     preampConvolver,
+  //     // cabinetConvolver,
+  //     master: masterGainRef.current
+  //   });
+    
+  //   const src = audioContext.createBufferSource();
+  //   src.buffer = bufRef.current;
+  //   src.loop   = loop;
+  //   src.onended = () => setRunning(false);
+  
+  //    if (bypass) {
+  //        // Direct path: sample → master gain → speakers
+  //        src.connect(masterGainRef.current);
+  //        masterGainRef.current.connect(audioContext.destination);
+  //      } else {
+  //        // AmpCab path: sample → tube node → preamp convolver → cab convolver → master gain → positional
+  //        src
+  //          .connect(tubeNode)
+  //          .connect(preampConvolver)
+  //          .connect(cabinetConvolverRef.current)
+  //          .connect(masterGainRef.current);
+      
+  //        // ensure masterGain feeds your positional audio stream
+  //        masterGainRef.current.connect(destRef.current);
+  //      }
+  //   // src
+  //   // .connect(tubeNode)
+  //   // .connect(preampConvolver)
+  //   // .connect(cabinetConvolverRef.current)
+  //   // .connect(masterGainRef.current);
+
+  //   srcRef.current = src;
+  //   setRunning(true);
+  //   src.start();
+  // }
+
+  async function playSample() {
+    // ➊ make sure we have everything
+    if (!audioContext || !bufRef.current || running) return;
     await audioContext.resume();
   
-    console.log('▶️ playSample, chain is:', {
-      tubeNode,
-      preampConvolver,
-      // cabinetConvolver,
-      master: masterGainRef.current
-    });
-    
+    // ➋ disconnect any old masterGain → destination / MediaStream
+    masterGainRef.current.disconnect();
+  
+    // ➌ create your destination only the first time
+    if (!destRef.current) {
+      // audioContext is guaranteed non-null here
+      const dest = audioContext.createMediaStreamDestination();
+      destRef.current = dest;
+  
+      // optional hidden <audio> for autoplay unlocking
+      const a = new Audio();
+      a.muted     = true;
+      a.srcObject = dest.stream;
+      audioElRef.current = a;
+    }
+  
     const src = audioContext.createBufferSource();
     src.buffer = bufRef.current;
     src.loop   = loop;
     src.onended = () => setRunning(false);
   
-    // decide whether to run through AmpCab or bypass
-    // if (tubeNode && preampConvolver && cabinetConvolver) {
-    //   // existing chain
-    //   src
-    //     .connect(tubeNode)
-    //     .connect(preampConvolver)
-    //     .connect(cabinetConvolver)
-    //     .connect(masterGainRef.current);
-    // } else {
-    //   // ☆ BYPASS: connect straight to masterGain
-    //   src.connect(masterGainRef.current);
-    // }
-    src
-    .connect(tubeNode)
-    .connect(preampConvolver)
-    .connect(cabinetConvolverRef.current)
-    .connect(masterGainRef.current);
-
-    srcRef.current = src;
-    setRunning(true);
+    if (bypass) {
+      // direct path
+      src.connect(masterGainRef.current);
+      masterGainRef.current.connect(audioContext.destination);
+    } else {
+      // processed path
+      src
+        .connect(tubeNode)
+        .connect(preampConvolver)
+        .connect(cabinetConvolverRef.current)
+        .connect(masterGainRef.current);
+  
+      // fan-out into your MediaStream
+      masterGainRef.current.connect(destRef.current);
+    }
+  
+    // ➍ now you can start both the node AND the <audio> unlock
     src.start();
+    setRunning(true);
+  
+    audioElRef.current?.play().catch(() => {});
   }
+  
   function stopSample() {
     srcRef.current?.stop();
     setRunning(false);
   }
 
+  // useEffect(() => {
+  //   if (tubeNode && preampConvolver && cabinetConvolverRef.current && masterGainRef.current) {
+  //     // create a MediaStream destination and connect your chain into it
+  //     const dest = audioContext.createMediaStreamDestination()  // :contentReference[oaicite:0]{index=0}
+  //     masterGainRef.current
+  //       .connect(dest)    // fan-out into the stream
+  //     destRef.current = dest
+
+  //     // create (or reuse) an <audio> element to play that stream
+  //     // const a = new Audio()
+  //     // a.srcObject = dest.stream                       // MDN: MediaStreamAudioDestinationNode.stream :contentReference[oaicite:1]{index=1}
+  //     // a.loop      = true
+  //     // a.play().catch(() => { /* wait for user gesture if needed */ })
+  //     // audioElRef.current = a
+  //     const a = new Audio();
+  //     a.muted = true;
+  //     a.srcObject = dest.stream;
+  //     audioElRef.current = a;
+      
+
+  //     setChainReady(true)
+  //   }
+  // }, [tubeNode, preampConvolver, cabinetConvolverRef])
+
+
   return (
-    <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+    <div className="App-main">
+    <main style={{ padding: '2rem', fontFamily: 'sans-serif' }} className='main-wrap'>
       <h2>🎸 Sample → TubeAmp + Cabinet → Master Out</h2>
 
       {/* File loader + Play/Stop */}
@@ -177,7 +262,15 @@ export default function App() {
           /> {gain.toFixed(2)}
         </label>
       </div>
-
+      <div style={{ marginTop: '1rem' }}>
+  <label>
+    <input
+      type="checkbox"
+      checked={bypass}
+      onChange={e => setBypass(e.target.checked)}
+    /> Bypass Amp (direct sound)
+  </label>
+</div>
       {/* Mount AmpCab only once Faust is ready */}
       {audioContext && faustCompiler && faustFactory && (
         <AmpCab
@@ -194,6 +287,14 @@ export default function App() {
           cabinetConvolver={cabinetConvolverRef.current}
         />
       )}
+     
     </main>
+    {/* {destRef.current && ( */}
+  <Scene
+    audioContext={audioContext}
+    mediaStream={destRef.current?.stream}
+  />
+{/* )} */}
+    </div>
   );
 }

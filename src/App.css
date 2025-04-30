@@ -40,3 +40,17 @@
 .read-the-docs {
   color: #888;
 }
+
+.main-wrap{
+  position: relative;
+  z-index: 20;
+}
+.canvas-main{
+  position: absolute;
+  /* background-color: aqua; */
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  /* z-index: -1; */
+}
