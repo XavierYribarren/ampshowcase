@@ -1,125 +1,136 @@
-import { useState, useEffect, useRef } from 'react';
+// src/App.jsx
+import React, { useState, useEffect, useRef } from 'react';
+import AmpCab from './AmpCab';
+import {
+  instantiateFaustModuleFromFile,
+  LibFaust,
+  FaustCompiler,
+  FaustMonoDspGenerator
+} from '@grame/faustwasm';
+// Vite will give us the final URL at runtime
+import libfaustUrl from '@grame/faustwasm/libfaust-wasm/libfaust-wasm.js?url';
+import './App.css';
 
 export default function App() {
-  // WebAudio refs
-  const ctxRef        = useRef();
-  const dryGainRef    = useRef();
-  const distRef       = useRef();
-  const revRef        = useRef();
-  const wetGainRef    = useRef();
-  const masterGainRef = useRef();
-  const bufRef        = useRef();
-  const srcRef        = useRef();
+  // ——— Audio engine & Faust ———
+  const [audioContext,  setAudioContext]  = useState(null);
+  const [faustCompiler, setFaustCompiler] = useState(null);
+  const [faustFactory,  setFaustFactory]  = useState(null);
 
-  // UI state
-  const [loaded,   setLoaded]   = useState(false);
-  const [running,  setRunning]  = useState(false);
-  const [loop,     setLoop]     = useState(false);
-  const [gain,     setGain]     = useState(1.0);   // master gain
-  const [dryWet,   setDryWet]   = useState(0.5);   // reverb mix
-  const [irLoaded, setIrLoaded] = useState(false);
+  // ——— TubeAmp→Cabinet ends ———
+  const [tubeNode,           setTubeNode]           = useState(null);
+  const [preampConvolver,    setPreampConvolver]    = useState(null);
+  const [cabinetConvolver,   setCabinetConvolver]   = useState(null);
 
-  // build a soft-clip curve
-  function makeDistCurve(amount = 1.0) {
-    const n = 256, curve = new Float32Array(n);
-    const deg = Math.PI / 180;
-    for (let i = 0; i < n; ++i) {
-      const x = (i * 2) / n - 1;
-      curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
-    }
-    return curve;
-  }
+  const chainReady = Boolean(
+       tubeNode && preampConvolver && cabinetConvolver
+     );
+    
 
-  // Setup nodes once
+  // ——— Sample player refs & UI ———
+  const masterGainRef = useRef(null);
+  const bufRef        = useRef(null);
+  const srcRef        = useRef(null);
+
+  const [loaded,  setLoaded]  = useState(false);
+  const [running, setRunning] = useState(false);
+  const [loop,    setLoop]    = useState(false);
+  const [gain,    setGain]    = useState(1.0);
+
+  // 1) On mount, create AudioContext + masterGain + Faust
   useEffect(() => {
-    const ctx    = new AudioContext({ latencyHint: 0.005 });
-    const dist   = ctx.createWaveShaper();
-    const rev    = ctx.createConvolver();
-    const dryG   = ctx.createGain();
-    const wetG   = ctx.createGain();
+    const ctx = new AudioContext({ latencyHint: 0.005 });
+    setAudioContext(ctx);
+
+    // master gain node (final out)
     const master = ctx.createGain();
-
-    // initial values
-    dist.curve         = makeDistCurve();
-    dryG.gain.value    = 1 - dryWet;
-    wetG.gain.value    = dryWet;
-    master.gain.value  = gain;
-
-    // stash
-    ctxRef.current        = ctx;
-    distRef.current       = dist;
-    revRef.current        = rev;
-    dryGainRef.current    = dryG;
-    wetGainRef.current    = wetG;
+    master.gain.value = gain;
+    master.connect(ctx.destination);
     masterGainRef.current = master;
 
-    // load default IR
-    fetch('./ir.wav')
-      .then(res => res.arrayBuffer())
-      .then(buf => ctx.decodeAudioData(buf))
-      .then(audioBuf => {
-        rev.buffer = audioBuf;
-        setIrLoaded(true);
+    // init Faust
+    instantiateFaustModuleFromFile(libfaustUrl)
+      .then(Module => {
+        const lib      = new LibFaust(Module);
+        const compiler = new FaustCompiler(lib);
+        const factory  = new FaustMonoDspGenerator();
+        setFaustCompiler(compiler);
+        setFaustFactory(factory);
       })
-      .catch(e => console.error('Default IR load error', e));
+      .catch(err => console.error('Faust init error:', err));
+
+    return () => ctx.close();
   }, []);
 
-  // update gains
+  // 2) Update master gain if slider moves
   useEffect(() => {
-    masterGainRef.current.gain.value = gain;
+    if (masterGainRef.current) {
+      masterGainRef.current.gain.value = gain;
+    }
   }, [gain]);
-  useEffect(() => {
-    dryGainRef.current.gain.value = 1 - dryWet;
-    wetGainRef.current.gain.value = dryWet;
-  }, [dryWet]);
-
-  // wire graph when starting
-  function setupGraph(src) {
-    const ctx    = ctxRef.current;
-    const dist   = distRef.current;
-    const rev    = revRef.current;
-    const dryG   = dryGainRef.current;
-    const wetG   = wetGainRef.current;
-    const master = masterGainRef.current;
-
-    // connect chain: src -> dist
-    src.connect(dist);
-    // dry path: dist -> dryG -> master
-    dist.connect(dryG);
-    dryG.connect(master);
-    // wet path: dist -> rev -> wetG -> master
-    dist.connect(rev);
-    rev.connect(wetG);
-    wetG.connect(master);
-    // master to destination
-    master.connect(ctx.destination);
+  function decodeAudioDataPromise(ctx, arrayBuffer) {
+    return new Promise((resolve, reject) => {
+      ctx.decodeAudioData(arrayBuffer, resolve, reject);
+    });
   }
 
-  // load sample
+  // 3) File-picker handler
   async function handleFile(e) {
     const file = e.target.files[0];
-    if (!file) return;
-    const buf = await file.arrayBuffer();
-    const audioBuf = await ctxRef.current.decodeAudioData(buf);
-    bufRef.current = audioBuf;
+    if (!file || !audioContext) return;
+    const arrayBuffer = await file.arrayBuffer();
+      let audioBuf;
+      try {
+        audioBuf = await decodeAudioDataPromise(audioContext, arrayBuffer);
+      } catch(err) {
+        console.error("decodeAudioData failed:", err);
+        return;
+      }
+      bufRef.current = audioBuf;
     setLoaded(true);
   }
 
-  // play
-  function playSample() {
-    if (!bufRef.current || running) return;
-    const ctx = ctxRef.current;
-    const src = ctx.createBufferSource();
+  // 4) Play the sample _through_ your AmpCab chain
+  async function playSample() {
+    if (!bufRef.current || running || !audioContext) return;
+  
+    // <-- this line is crucial:
+    await audioContext.resume();
+  
+    console.log('▶️ playSample, chain is:', {
+      tubeNode,
+      preampConvolver,
+      cabinetConvolver,
+      master: masterGainRef.current
+    });
+    
+    const src = audioContext.createBufferSource();
     src.buffer = bufRef.current;
-    src.loop = loop;
+    src.loop   = loop;
     src.onended = () => setRunning(false);
+  
+    // decide whether to run through AmpCab or bypass
+    // if (tubeNode && preampConvolver && cabinetConvolver) {
+    //   // existing chain
+    //   src
+    //     .connect(tubeNode)
+    //     .connect(preampConvolver)
+    //     .connect(cabinetConvolver)
+    //     .connect(masterGainRef.current);
+    // } else {
+    //   // ☆ BYPASS: connect straight to masterGain
+    //   src.connect(masterGainRef.current);
+    // }
+    src
+    .connect(tubeNode)
+    .connect(preampConvolver)
+    .connect(cabinetConvolver)
+    .connect(masterGainRef.current);
+
     srcRef.current = src;
     setRunning(true);
-    setupGraph(src);
     src.start();
   }
-
-  // stop
   function stopSample() {
     srcRef.current?.stop();
     setRunning(false);
@@ -127,8 +138,9 @@ export default function App() {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h2>🎸 Sample → Distortion → Reverb Mix → Master Out</h2>
+      <h2>🎸 Sample → TubeAmp + Cabinet → Master Out</h2>
 
+      {/* File loader + Play/Stop */}
       <div>
         <input type="file" accept="audio/*" onChange={handleFile} />
         <button onClick={playSample} disabled={!loaded || running}>
@@ -139,6 +151,7 @@ export default function App() {
         </button>
       </div>
 
+      {/* Loop toggle */}
       <div style={{ marginTop: '1rem' }}>
         <label>
           <input
@@ -149,27 +162,35 @@ export default function App() {
         </label>
       </div>
 
+      {/* Master gain slider */}
       <div style={{ marginTop: '1rem' }}>
-        <label>
-          Dry/Wet:&nbsp;
-          <input
-            type="range" min="0" max="1" step="0.01"
-            value={dryWet}
-            onChange={e => setDryWet(parseFloat(e.target.value))}
-          /> {Math.round(dryWet * 100)}%
-        </label>
-      </div>
-
-      <div style={{ marginTop: '0.5rem' }}>
         <label>
           Master Gain:&nbsp;
           <input
-            type="range" min="0" max="4" step="0.01"
+            type="range"
+            min="0" max="10" step="0.01"
             value={gain}
             onChange={e => setGain(parseFloat(e.target.value))}
           /> {gain.toFixed(2)}
         </label>
       </div>
+
+      {/* Mount AmpCab only once Faust is ready */}
+      {audioContext && faustCompiler && faustFactory && (
+        <AmpCab
+          audioContext={audioContext}
+          faustCompiler={faustCompiler}
+          faustFactory={faustFactory}
+          // get [preampConvolver, faustNode]
+          onPluginReady={([preampConv, faustNode]) => {
+            // we'll wire in playSample()
+            setPreampConvolver(preampConv);
+            setTubeNode(faustNode);
+          }}
+          // get the final cabinet ConvolverNode
+          onCabReady={setCabinetConvolver}
+        />
+      )}
     </main>
   );
 }
