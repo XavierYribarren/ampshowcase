@@ -1,20 +1,24 @@
 // src/Scene.jsx
 import React, { useRef, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Environment, OrbitControls } from '@react-three/drei';
+import { Backdrop, Environment, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
+import { Amp } from './Amp';
+import { Perf } from 'r3f-perf';
 
 export default function Scene({ audioContext, mediaStream }) {
   return (
     <div className="canvas-main" style={{ width: '100%', height: '100%' }}>
       <Canvas>
-        <Environment preset="city" background />
+        <Environment preset="city" backgroundBlurriness={.5} background />
         <OrbitControls />
         <SoundEmitter
           audioContext={audioContext}
           mediaStream={mediaStream}
           distance={5}
         />
+
+        <Perf/>
       </Canvas>
     </div>
   );
@@ -57,9 +61,8 @@ function SoundEmitter({ audioContext, mediaStream, distance }) {
   }, [audioContext, mediaStream, camera, distance]);
 
   return (
-    <mesh ref={meshRef} position={[0, 1, 0]}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="orange" />
+    <mesh ref={meshRef} position={[0, -1, -1]}>
+<Amp/>
     </mesh>
   );
 }
