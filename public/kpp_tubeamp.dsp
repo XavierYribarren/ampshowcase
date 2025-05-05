@@ -108,17 +108,26 @@ process = preamp_amp with {
     - :
     fi.lowpass(1, 11000);
 
-    // Part of the chain before Voltage Sag in power amp
-    pre_sag = _,_ : + : fi.dcblocker : *(ba.db2linear(drive * 0.4) - 1) :
-    *(preamp_level) : stage_preamp : fi.dcblocker :*(amp_level) :
-    *(ba.db2linear(mastergain * 0.4) - 1) : stage_tonestack;
+    maxDb      = 20.0;                          // pick your max boost in dB
+    db         = (drive / 100.0) * maxDb;       // 0→0 dB, 100→+20 dB
+    driveGain  = ba.db2linear(db);              // ≥1 always
 
-    // All chain, pre-sag + power amp with Voltage Sag
-    preamp_amp = pre_sag :
-    (_,_ : (_<: (1.0/_),_),_ : _,* : _,stage_amp : *)
+    // Part of the chain before Voltage Sag in power amp
+    pre_sag =
+      _,_             : + : fi.dcblocker           :
+      *(driveGain)    : *(preamp_level) : stage_preamp :
+      fi.dcblocker    : *(amp_level)    :
+      *(ba.db2linear(mastergain * 0.4) - 1) :
+      stage_tonestack;
+
+    preamp_amp =
+      pre_sag :
+      (_,_ : (_<: (1.0/_),_),_ : _,* : _,stage_amp : *)  
     ~ (_ <: _,_: * : fi.lowpass(1,sag_time) : *(sag_coeff) :
-    max(1.0) : min(2.5)) : *(volume) :
-    *(output_level) : fi.dcblocker <: _,_;
+        max(1.0) : min(2.5)) :
+      *(volume) :
+      *(output_level) :
+      fi.dcblocker <: _,_;
 };
 
 

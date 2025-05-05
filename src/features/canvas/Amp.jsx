@@ -110,24 +110,27 @@ export function Amp(props) {
         geometry={nodes.Plate_Grid.geometry}
         material={plateGridMat}
       />
+      <group name='knob'>
+
       <mesh
         castShadow
         receiveShadow
         geometry={nodes.Cylinder001.geometry}
-        material={nodes.Cylinder001.material}
-      />
+        material={blackPlastic}
+        />
       <mesh
         castShadow
         receiveShadow
         geometry={nodes.Cylinder001_1.geometry}
-        material={nodes.Cylinder001_1.material}
-      />
+        material={metalMat}
+        />
       <mesh
         castShadow
         receiveShadow
         geometry={nodes.Cylinder001_2.geometry}
         material={nodes.Cylinder001_2.material}
-      />
+        />
+        </group>
     </group>
   );
 }
