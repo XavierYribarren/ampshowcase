@@ -44,6 +44,11 @@ export default function App() {
   const [loop,    setLoop]    = useState(false);
   const [gain,    setGain]    = useState(1.0);
 
+
+  const [sliderMeta, setSliderMeta] = useState([]);
+  const [sliderVals, setSliderVals] = useState({});
+  const tubeRef = useRef(null);
+
   // 1) On mount, create AudioContext + masterGain + Faust
   useEffect(() => {
     const ctx = new AudioContext({ latencyHint: 0.005 });
@@ -99,50 +104,7 @@ export default function App() {
     setLoaded(true);
   }
 
-  // 4) Play the sample _through_ your AmpCab chain
-  // async function playSample() {
-  //   if (!bufRef.current || running || !audioContext) return;
-  
-  //   // <-- this line is crucial:
-  //   await audioContext.resume();
-  //   masterGainRef.current.disconnect();
-  //   console.log('▶️ playSample, chain is:', {
-  //     tubeNode,
-  //     preampConvolver,
-  //     // cabinetConvolver,
-  //     master: masterGainRef.current
-  //   });
-    
-  //   const src = audioContext.createBufferSource();
-  //   src.buffer = bufRef.current;
-  //   src.loop   = loop;
-  //   src.onended = () => setRunning(false);
-  
-  //    if (bypass) {
-  //        // Direct path: sample → master gain → speakers
-  //        src.connect(masterGainRef.current);
-  //        masterGainRef.current.connect(audioContext.destination);
-  //      } else {
-  //        // AmpCab path: sample → tube node → preamp convolver → cab convolver → master gain → positional
-  //        src
-  //          .connect(tubeNode)
-  //          .connect(preampConvolver)
-  //          .connect(cabinetConvolverRef.current)
-  //          .connect(masterGainRef.current);
-      
-  //        // ensure masterGain feeds your positional audio stream
-  //        masterGainRef.current.connect(destRef.current);
-  //      }
-  //   // src
-  //   // .connect(tubeNode)
-  //   // .connect(preampConvolver)
-  //   // .connect(cabinetConvolverRef.current)
-  //   // .connect(masterGainRef.current);
 
-  //   srcRef.current = src;
-  //   setRunning(true);
-  //   src.start();
-  // }
 
   async function playSample() {
     // ➊ make sure we have everything
@@ -198,30 +160,18 @@ export default function App() {
     setRunning(false);
   }
 
-  // useEffect(() => {
-  //   if (tubeNode && preampConvolver && cabinetConvolverRef.current && masterGainRef.current) {
-  //     // create a MediaStream destination and connect your chain into it
-  //     const dest = audioContext.createMediaStreamDestination()  // :contentReference[oaicite:0]{index=0}
-  //     masterGainRef.current
-  //       .connect(dest)    // fan-out into the stream
-  //     destRef.current = dest
-
-  //     // create (or reuse) an <audio> element to play that stream
-  //     // const a = new Audio()
-  //     // a.srcObject = dest.stream                       // MDN: MediaStreamAudioDestinationNode.stream :contentReference[oaicite:1]{index=1}
-  //     // a.loop      = true
-  //     // a.play().catch(() => { /* wait for user gesture if needed */ })
-  //     // audioElRef.current = a
-  //     const a = new Audio();
-  //     a.muted = true;
-  //     a.srcObject = dest.stream;
-  //     audioElRef.current = a;
-      
-
-  //     setChainReady(true)
-  //   }
-  // }, [tubeNode, preampConvolver, cabinetConvolverRef])
-
+  const handleSlidersReady = meta => {
+    
+    setSliderMeta(meta);
+    setSliderVals(Object.fromEntries(meta.map(m => [m.address, m.init])));
+    handleSlidersReady.ref = tubeRef;      // exposes TubeAmp.setParam
+  };
+  
+  const handleSliderDrag = (addr, val) => {
+    setSliderVals(vs => ({ ...vs, [addr]: val }));
+    tubeRef.current?.setParam(addr, val);  // updates Faust
+  };
+  
 
   return (
     <div className="App-main">
@@ -285,6 +235,10 @@ export default function App() {
           }}
           // get the final cabinet ConvolverNode
           cabinetConvolver={cabinetConvolverRef.current}
+          
+          tubeRef={tubeRef}                 // ← new prop
+          onSlidersReady={handleSlidersReady}
+          onSliderChange={handleSliderDrag}
         />
       )}
      
@@ -293,6 +247,9 @@ export default function App() {
   <Scene
     audioContext={audioContext}
     mediaStream={destRef.current?.stream}
+    sliders={sliderMeta}
+    values={sliderVals}
+    onDragSlider={handleSliderDrag}
   />
 {/* )} */}
     </div>

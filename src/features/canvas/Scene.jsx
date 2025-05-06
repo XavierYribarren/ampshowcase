@@ -3,55 +3,71 @@ import React, { useRef, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Backdrop, Environment, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { Amp } from './Amp';
+import Amp from './Amp';
 import { Perf } from 'r3f-perf';
 import Surrounding from './Surrounding';
 
-export default function Scene({ audioContext, mediaStream }) {
+export default function Scene({
+  audioContext,
+  mediaStream,
+  sliders = [], // NEW: meta from TubeAmp
+  values = {}, // NEW: { address → currentValue }
+  onDragSlider = () => {},
+  ...props
+}) {
   return (
-    <div className="canvas-main" style={{ width: '100%', height: '100%' }}>
+    <div className='canvas-main' style={{ width: '100%', height: '100%' }}>
       <Canvas
-      camera={{fov: 80}}
-               shadows
-               dpr={[1, 2]}
-               gl={{
-                 // preserveDrawingBuffer: true,
-                 antialias: true,
-                 alpha: true,
-                 // powerPreference: 'high-performance',
-               }}
+        camera={{ fov: 80 }}
+        shadows
+        dpr={[1, 2]}
+        gl={{
+          // preserveDrawingBuffer: true,
+          antialias: true,
+          alpha: true,
+          // powerPreference: 'high-performance',
+        }}
       >
-        <Environment preset="city" backgroundBlurriness={.5}  background environmentIntensity={.15}/>
-        <directionalLight 
-        position={[0,6,2]}
-        intensity={5}
-        lookAt={[0,0,0]}
-        // scale={5}
-        
-        castShadow
-        angle={.3}
-        color={"#fff"}
-        shadow-camera-left={-40}
-        shadow-camera-right={40}
-        shadow-camera-top={40}
-        shadow-camera-bottom={-40}
-        shadow-camera-near={0.1}
-        shadow-camera-far={150}
+        <Environment
+          preset='city'
+          backgroundBlurriness={0.5}
+          background
+          environmentIntensity={0.15}
+        />
+        <directionalLight
+          position={[0, 6, 2]}
+          intensity={5}
+          lookAt={[0, 0, 0]}
+          // scale={5}
+
+          castShadow
+          angle={0.3}
+          color={'#fff'}
+          shadow-camera-left={-40}
+          shadow-camera-right={40}
+          shadow-camera-top={40}
+          shadow-camera-bottom={-40}
+          shadow-camera-near={0.1}
+          shadow-camera-far={150}
         />
         <OrbitControls />
         <SoundEmitter
           audioContext={audioContext}
           mediaStream={mediaStream}
           distance={5}
+          sliders={sliders}
+          values={values} // NEW
+          onDragSlider={onDragSlider}
         />
-<Surrounding/>
-        <Perf/>
+        <Surrounding />
+        <Perf />
       </Canvas>
     </div>
   );
 }
 
-function SoundEmitter({ audioContext, mediaStream, distance }) {
+function SoundEmitter({ audioContext, mediaStream, distance, sliders, values,
+    onDragSlider }) {
   const meshRef = useRef();
   const { camera } = useThree();
 
@@ -86,10 +102,14 @@ function SoundEmitter({ audioContext, mediaStream, distance }) {
       camera.remove(listener);
     };
   }, [audioContext, mediaStream, camera, distance]);
-
+  // console.log('[Scene] sending sliders to Amp', sliders);
   return (
     <mesh ref={meshRef} position={[0, -1, -1]}>
-<Amp/>
+      <Amp 
+      sliders={sliders}
+            values={values}
+            onDragSlider={onDragSlider}
+      />
     </mesh>
   );
 }

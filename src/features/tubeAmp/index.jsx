@@ -27,7 +27,9 @@ export default function TubeAmp({
   compiler,
   onPluginReady,
   pluginNodes,
-  pluginProfile
+  pluginProfile,
+  onSlidersReady,   
+   onSliderChange 
 }) {
   const [node, setNode] = useState(pluginNodes ? pluginNodes[1] : null);
   const [profileSource, setProfileSource] = useState(
@@ -126,6 +128,24 @@ export default function TubeAmp({
     setProfileSource(e.target.value);
   };
 
+  const sliderMeta = React.useMemo(
+      () => getControlsByType(node, 'vslider'),
+      [node]
+    );
+  
+    React.useEffect(() => {
+      if (sliderMeta.length && onSlidersReady) onSlidersReady(sliderMeta);
+    }, [sliderMeta, onSlidersReady]);
+  
+    // we’ll call this from outside when a 3‑D knob is dragged
+    const setParam = React.useCallback((address, value) => {
+      node && node.setParamValue(address, value);
+      onSliderChange && onSliderChange(address, value);
+    }, [node, onSliderChange]);
+  
+    // expose setParam through ref so the parent can reach it
+    React.useImperativeHandle(onSlidersReady?.ref || null, () => ({ setParam }));
+
   if (!node) {
     return <div>Start audio to load the plugin</div>;
   }
@@ -137,6 +157,8 @@ export default function TubeAmp({
 
   return (
     <div className="plugin amp-head">
+              node ? null : <div>Start audio to load the plugin</div>
+         
       <div className="plugin-title">{node.fJSONDsp?.name}</div>
 
       <label htmlFor="profile">Choose Profile</label>
@@ -152,8 +174,8 @@ export default function TubeAmp({
         ))}
       </select>
 
-      <div className="knobs-wrapper" onMouseDown={stopEventPropagation}>
-        {sliderParams.map(({ address, init, label, min, max, step }) => (
+      {/* <div className="knobs-wrapper" onMouseDown={stopEventPropagation}>
+      {sliderParams.map(({ address, init, label, min, max, step }) => (
           <div key={address} className="knob">
             <label htmlFor={address}>{label}</label>
             <Knob
@@ -171,7 +193,7 @@ export default function TubeAmp({
             </Knob>
           </div>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 }
