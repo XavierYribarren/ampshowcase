@@ -1,28 +1,30 @@
 // src/features/amp/Amp.jsx
 import React, { useRef, useState } from 'react';
 import { useGLTF, useTexture, useCursor } from '@react-three/drei';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useDrag } from '@use-gesture/react';
 import * as THREE from 'three';
 
-// ─────────────────────────────────────────────────────────────
-// props
-//   sliders       : [{ address, label, min, max, init }, …]  (from TubeAmp)
-//   values        : { [address]: currentValue }              (kept in AmpCab)
-//   onDragSlider  : (address, newValue)  →  forward to TubeAmp.setParam
-//   …plus anything else (position, rotation, etc.) via ...props
-// ─────────────────────────────────────────────────────────────
+/* ─────────────────────────────  CONFIG  ─────────────────────────────── */
+const ROT_AXIS  = 'y';   // change to 'y' if your knobs rotate on Y
+const FULL_PIX  = 150;   // vertical pixels for min → max range
+const SPACING   = 0.83;  // metres between knobs
+const START_Y   = 0.11;  // knob row Y
+const START_Z   = 0.06;  // knob row Z
+const ANGLE_MIN = -140;
+const ANGLE_MAX =  140;
+/* ────────────────────────────────────────────────────────────────────── */
+
 export default function Amp({
   sliders = [],
   values  = {},
   onDragSlider = () => {},
-  controlsRef,
-  ...props
+  controlsRef,              // OrbitControls ref passed from Scene
+  ...props                  // position / rotation / scale etc.
 }) {
+  /* -------- GLTF + materials (unchanged) ----------------------------- */
   const { nodes } = useGLTF('/amptestOPT.glb');
-  const { gl } = useThree();               // import { useThree } from '@react-three/fiber'
-  // const controls = gl.controls; 
-  // ---------- textures & materials (unchanged) ---------------------------
+
   const [
     ampCol, AmpNorm, AmpRough, AmpBump,
     PlateCol, PlateNorm, PlateRough, PlateAO
@@ -37,8 +39,7 @@ export default function Amp({
     '/Amp_textures/Plate_Grid2_AO.png'
   ]);
 
-  const repeatTex = [ampCol, AmpNorm, AmpRough];
-  repeatTex.forEach(t => {
+  [ampCol, AmpNorm, AmpRough].forEach(t => {
     t.flipY = false;
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.repeat.set(15, 15);
@@ -63,47 +64,78 @@ export default function Amp({
     aoMap: PlateAO
   });
   const gridCurveMat = new THREE.MeshStandardMaterial({ color: '#51D6E7', roughness: 0.5 });
-  const blackPlastic = new THREE.MeshStandardMaterial({ color: '#222', roughness: 0.5 });
-  const metalMat     = new THREE.MeshStandardMaterial({ metalness: 1, roughness: 0.1 });
+  const blackPlastic = new THREE.MeshStandardMaterial({ color: '#222',  roughness: 0.5 });
+  const metalMat     = new THREE.MeshStandardMaterial({ metalness: 1,   roughness: 0.1 });
 
-  // ---------- knob interaction ------------------------------------------
-  const knobRefs = useRef([]);
-  const toAngle  = (v, { min, max }) =>
-    THREE.MathUtils.lerp(
-      THREE.MathUtils.degToRad(-140),
-      THREE.MathUtils.degToRad( 140),
-      (v - min) / (max - min)
-    );
+  /* -------- helpers --------------------------------------------------- */
+  const deg = THREE.MathUtils.degToRad;
+  const toAngle = (val, { min, max }) =>
+    THREE.MathUtils.lerp(deg(ANGLE_MIN), deg(ANGLE_MAX), (val - min) / (max - min));
 
-  // animate rotation every frame
+  /* -------- refs & local state ---------------------------------------- */
+  const knobRefs   = useRef([]);
+  const draggingIx = useRef(null);      // index of currently dragged knob
+
+  /* -------- animate every frame from parent values, UNLESS dragging --- */
   useFrame(() =>
     sliders.forEach((s, i) => {
+      if (draggingIx.current === i) return;      // don’t overwrite live drag
+      // console.log('render', s.label, values[s.address]); 
+      
       const g = knobRefs.current[i];
-      if (g) g.rotation.z = toAngle(values[s.address] ?? s.init, s);
+      if (g) g.rotation[ROT_AXIS] = toAngle(values[s.address] ?? s.init, s);
     })
   );
 
-  // drag → parameter
+  /* -------- drag gesture ---------------------------------------------- */
   const dragBind = useDrag(
     ({ args: [idx], movement: [, dy], memo, first, last }) => {
-      if (first && controlsRef?.current) controlsRef.current.enabled = false;   // disable orbit
-      if (last  && controlsRef?.current) controlsRef.current.enabled = true;    // re‑enable
+      const d = sliders[idx];
+      if (!d) return memo;
   
-      const desc = sliders[idx];
-      if (!desc) return memo;
-      const start = memo ?? (values[desc.address] ?? desc.init);
-      const delta = -dy / 150 * (desc.max - desc.min);   // 150 px ≈ full throw
-      const next  = THREE.MathUtils.clamp(start + delta, desc.min, desc.max);
-      onDragSlider(desc.address, next);
-      return start;                                      // memo for next drag event
+      /* lock / unlock OrbitControls */
+      if (first) {
+        draggingIx.current = idx;
+        controlsRef?.current && (controlsRef.current.enabled = false);
+      }
+      if (last) {
+        draggingIx.current = null;
+        controlsRef?.current && (controlsRef.current.enabled = true);
+
+       return memo;                 // 🔸 early exit, keep memo
+      }
+  
+      /* value maths (runs only while dragging, not after) */
+      const start = memo ?? (values[d.address] ?? d.init);
+      const delta = -dy / FULL_PIX * (d.max - d.min);
+      const next  = THREE.MathUtils.clamp(start + delta, d.min, d.max);
+  
+      /* immediate local rotation */
+      knobRefs.current[idx].rotation[ROT_AXIS] = toAngle(next, d);
+  
+      onDragSlider(d.address, next);            // 🔹 push NEW value
+      return start;
     },
-    { axis: 'y', pointerEvents: true }
+    {
+      axis: 'y',
+      pointerEvents: true,
+      stopPropagation: true,
+      from: state => {
+        const idx = state.args[0];
+        const d   = sliders[idx];
+        if (!d) return [0, 0];
+        const v   = values[d.address] ?? d.init;
+        const pct = (v - d.min) / (d.max - d.min);
+        return [0, -pct * FULL_PIX];
+      }
+    }
   );
 
-  // cursor feedback
+  /* -------- cursor feedback & orbit lock on hover --------------------- */
   const [hover, setHover] = useState(false);
   useCursor(hover, 'grab');
-  const handleOver  = () => {
+
+  const handleOver = () => {
     setHover(true);
     controlsRef?.current && (controlsRef.current.enabled = false);
   };
@@ -111,56 +143,36 @@ export default function Amp({
     setHover(false);
     controlsRef?.current && (controlsRef.current.enabled = true);
   };
-  // simple horizontal layout under grille
-  const spacing = 0.13;
-  const startX  = -(sliders.length - 1) * spacing * 0.5;
-  const knobY   = 0.11;
-  const knobZ   = 0.06;
 
+  /* -------- layout ---------------------------------------------------- */
+  const startX = -(sliders.length - 1) * SPACING * 0.5;
 
-  // console.log('controlsRef?', !!controlsRef?.current);
-
-  // ---------- actual model ----------------------------------------------
+  /* -------- render ---------------------------------------------------- */
   return (
     <group {...props} dispose={null}>
-      {/* static meshes */}
-      <mesh geometry={nodes.Jack_wire.geometry}   material={blackPlastic} castShadow receiveShadow />
+      {/* static parts */}
+      {/* <mesh geometry={nodes.Jack_wire.geometry}   material={blackPlastic} castShadow receiveShadow />
       <mesh geometry={nodes.Grid_Curve.geometry}  material={gridCurveMat} castShadow receiveShadow />
       <mesh geometry={nodes.Backplate.geometry}   material={nodes.Backplate.material} castShadow receiveShadow />
       <mesh geometry={nodes.Feet.geometry}        material={blackPlastic} castShadow receiveShadow />
       <mesh geometry={nodes.Jack_input.geometry}  material={metalMat} castShadow receiveShadow />
       <mesh geometry={nodes.Jack_plug.geometry}   material={metalMat} castShadow receiveShadow />
       <mesh geometry={nodes.Amp_case001.geometry} material={ampMat} castShadow receiveShadow />
-      <mesh geometry={nodes.Plate_Grid.geometry}  material={plateGridMat} castShadow receiveShadow />
+      <mesh geometry={nodes.Plate_Grid.geometry}  material={plateGridMat} castShadow receiveShadow /> */}
 
-      {/* duplicated knobs */}
+      {/* knobs */}
       {sliders.map((s, i) => (
         <group
           key={s.address}
-          position={[startX + i * spacing, knobY, knobZ]}
+          position={[startX + i * SPACING, START_Y, START_Z]}
           ref={g => (knobRefs.current[i] = g)}
           {...dragBind(i)}
-          // onPointerOver={() => setHover(true)}
-          // onPointerOut ={() => setHover(false)}
           onPointerOver={handleOver}
-          onPointerOut ={handleOut}
-          onPointerDown={e => e.stopPropagation()}
+          onPointerOut={handleOut}
         >
-          <mesh
-            geometry={nodes.Cylinder001.geometry}
-            material={blackPlastic}
-            castShadow receiveShadow
-          />
-          <mesh
-            geometry={nodes.Cylinder001_1.geometry}
-            material={metalMat}
-            castShadow receiveShadow
-          />
-          <mesh
-            geometry={nodes.Cylinder001_2.geometry}
-            material={nodes.Cylinder001_2.material}
-            castShadow receiveShadow
-          />
+          <mesh geometry={nodes.Cylinder001.geometry}   material={blackPlastic} castShadow receiveShadow />
+          <mesh geometry={nodes.Cylinder001_1.geometry} material={metalMat}     castShadow receiveShadow />
+          <mesh geometry={nodes.Cylinder001_2.geometry} material={nodes.Cylinder001_2.material} castShadow receiveShadow />
         </group>
       ))}
     </group>

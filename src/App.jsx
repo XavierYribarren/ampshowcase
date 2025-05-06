@@ -161,15 +161,17 @@ export default function App() {
   }
 
   const handleSlidersReady = meta => {
-    
+    // console.table(meta.map(({ label, address, type }) => ({ label, address, type })));
     setSliderMeta(meta);
     setSliderVals(Object.fromEntries(meta.map(m => [m.address, m.init])));
     handleSlidersReady.ref = tubeRef;      // exposes TubeAmp.setParam
   };
   
   const handleSliderDrag = (addr, val) => {
-    setSliderVals(vs => ({ ...vs, [addr]: val }));
+    // setSliderVals(vs => ({ ...vs, [addr]: val }));
     tubeRef.current?.setParam(addr, val);  // updates Faust
+    setSliderVals(vals => ({ ...vals, [addr]: val }));
+    console.log('drag -> parent', addr, val);
   };
   
 

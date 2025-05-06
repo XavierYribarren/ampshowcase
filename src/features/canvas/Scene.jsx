@@ -101,16 +101,18 @@ function SoundEmitter({ audioContext, mediaStream, distance, sliders, values,
     positional.setNodeSource(sourceNode);
     positional.setRefDistance(distance);
     positional.setLoop(true);
-    positional.play();
+    // positional.play();
 
     return () => {
       positional.stop();
       camera.remove(listener);
     };
   }, [audioContext, mediaStream, camera, distance]);
+  // console.log('[SoundEmitter] got values', Object.values(values));
   // console.log('[Scene] sending sliders to Amp', sliders);
   return (
     <mesh ref={meshRef} position={[0, -1, -1]}>
+      
       <Amp 
       sliders={sliders}
             values={values}
