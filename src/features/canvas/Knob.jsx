@@ -1,6 +1,6 @@
 // src/features/amp/Knob.jsx
 import React, { useRef, useLayoutEffect, useState } from 'react';
-import { useGLTF, useCursor, useTexture } from '@react-three/drei';
+import { useGLTF, useCursor, useTexture, Text } from '@react-three/drei';
 import { useDrag } from '@use-gesture/react';
 import * as THREE from 'three';
 
@@ -86,7 +86,7 @@ const [knobComb, knobRough] = useTexture([
   const blackPlastic = new THREE.MeshStandardMaterial({ color: '#222',    roughness: 0.5, roughnessMap: knobRough });
   const metalMat     = new THREE.MeshStandardMaterial({ metalness: 1,     roughness: 0.1 });
 
- 
+//  console.log(desc)
   return (
     <group
       {...props}
@@ -103,7 +103,14 @@ const [knobComb, knobRough] = useTexture([
           <mesh geometry={nodes.Cylinder001_1.geometry} material={metalMat} castShadow receiveShadow/>
           <mesh geometry={nodes.Cylinder001_2.geometry} material={nodes.Cylinder001_2.material} castShadow receiveShadow/>
         </group>
-      </group>
+        </group>
+      <Text 
+      position={[0,-.3,.21]}
+      // rotation={[tilt, 0, 0]}
+      scale={.15}
+      >
+        {desc.label}
+      </Text>
     </group>
   );
 }

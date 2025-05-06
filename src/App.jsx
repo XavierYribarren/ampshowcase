@@ -42,7 +42,7 @@ export default function App() {
   const [loaded,  setLoaded]  = useState(false);
   const [running, setRunning] = useState(false);
   const [loop,    setLoop]    = useState(false);
-  const [gain,    setGain]    = useState(1.0);
+  const [gain,    setGain]    = useState(8.0);
 
 
   const [sliderMeta, setSliderMeta] = useState([]);

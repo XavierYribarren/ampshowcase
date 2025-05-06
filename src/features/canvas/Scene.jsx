@@ -88,7 +88,7 @@ export default function Scene({
           intensity={1.4}                 // lux
           position={[0, 6, 2]}
           shadow-mapSize={[2048, 2048]}    // crisper penumbra
-          shadow-bias={-0.000005} 
+          // shadow-bias={-0.000005} 
           color={"#fdf3e6"}
         >
           <orthographicCamera
