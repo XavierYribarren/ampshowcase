@@ -176,6 +176,8 @@ export default function App() {
   return (
     <div className="App-main">
     <main style={{ padding: '2rem', fontFamily: 'sans-serif' }} className='main-wrap'>
+    <div className="ampheader">
+
       <h2>🎸 Sample → TubeAmp + Cabinet → Master Out</h2>
 
       {/* File loader + Play/Stop */}
@@ -209,7 +211,7 @@ export default function App() {
             min="0" max="10" step="0.01"
             value={gain}
             onChange={e => setGain(parseFloat(e.target.value))}
-          /> {gain.toFixed(2)}
+            /> {gain.toFixed(2)}
         </label>
       </div>
       <div style={{ marginTop: '1rem' }}>
@@ -218,8 +220,9 @@ export default function App() {
       type="checkbox"
       checked={bypass}
       onChange={e => setBypass(e.target.checked)}
-    /> Bypass Amp (direct sound)
+      /> Bypass Amp (direct sound)
   </label>
+      </div>
 </div>
       {/* Mount AmpCab only once Faust is ready */}
       {audioContext && faustCompiler && faustFactory && (

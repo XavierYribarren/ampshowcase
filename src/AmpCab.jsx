@@ -42,7 +42,7 @@ export default function AmpCab({
 
   return (
     <div className="AmpCab">
-      <h1>Tube Amp + Cabinet Demo</h1>
+      {/* <h1>Tube Amp + Cabinet Demo</h1> */}
       <TubeAmp
       ref={tubeRef}
         id="demo-amp"

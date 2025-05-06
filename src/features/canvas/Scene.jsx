@@ -15,6 +15,9 @@ export default function Scene({
   onDragSlider = () => {},
   ...props
 }) {
+
+  const controlsRef = useRef();
+
   return (
     <div className='canvas-main' style={{ width: '100%', height: '100%' }}>
       <Canvas
@@ -50,7 +53,9 @@ export default function Scene({
           shadow-camera-near={0.1}
           shadow-camera-far={150}
         />
-        <OrbitControls />
+        <OrbitControls 
+        ref={controlsRef} 
+        />
         <SoundEmitter
           audioContext={audioContext}
           mediaStream={mediaStream}
@@ -58,6 +63,7 @@ export default function Scene({
           sliders={sliders}
           values={values} // NEW
           onDragSlider={onDragSlider}
+          controlsRef={controlsRef} 
         />
         <Surrounding />
         <Perf />
@@ -67,7 +73,7 @@ export default function Scene({
 }
 
 function SoundEmitter({ audioContext, mediaStream, distance, sliders, values,
-    onDragSlider }) {
+    onDragSlider, controlsRef }) {
   const meshRef = useRef();
   const { camera } = useThree();
 
@@ -109,6 +115,7 @@ function SoundEmitter({ audioContext, mediaStream, distance, sliders, values,
       sliders={sliders}
             values={values}
             onDragSlider={onDragSlider}
+            controlsRef={controlsRef} 
       />
     </mesh>
   );

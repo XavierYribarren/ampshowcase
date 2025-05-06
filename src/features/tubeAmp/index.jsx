@@ -157,8 +157,7 @@ export default function TubeAmp({
 
   return (
     <div className="plugin amp-head">
-              node ? null : <div>Start audio to load the plugin</div>
-         
+                    
       <div className="plugin-title">{node.fJSONDsp?.name}</div>
 
       <label htmlFor="profile">Choose Profile</label>

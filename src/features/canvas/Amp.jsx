@@ -1,7 +1,7 @@
 // src/features/amp/Amp.jsx
 import React, { useRef, useState } from 'react';
 import { useGLTF, useTexture, useCursor } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useDrag } from '@use-gesture/react';
 import * as THREE from 'three';
 
@@ -16,10 +16,12 @@ export default function Amp({
   sliders = [],
   values  = {},
   onDragSlider = () => {},
+  controlsRef,
   ...props
 }) {
   const { nodes } = useGLTF('/amptestOPT.glb');
-
+  const { gl } = useThree();               // import { useThree } from '@react-three/fiber'
+  // const controls = gl.controls; 
   // ---------- textures & materials (unchanged) ---------------------------
   const [
     ampCol, AmpNorm, AmpRough, AmpBump,
@@ -83,7 +85,10 @@ export default function Amp({
 
   // drag → parameter
   const dragBind = useDrag(
-    ({ args: [idx], movement: [, dy], memo }) => {
+    ({ args: [idx], movement: [, dy], memo, first, last }) => {
+      if (first && controlsRef?.current) controlsRef.current.enabled = false;   // disable orbit
+      if (last  && controlsRef?.current) controlsRef.current.enabled = true;    // re‑enable
+  
       const desc = sliders[idx];
       if (!desc) return memo;
       const start = memo ?? (values[desc.address] ?? desc.init);
@@ -98,12 +103,22 @@ export default function Amp({
   // cursor feedback
   const [hover, setHover] = useState(false);
   useCursor(hover, 'grab');
-
+  const handleOver  = () => {
+    setHover(true);
+    controlsRef?.current && (controlsRef.current.enabled = false);
+  };
+  const handleOut = () => {
+    setHover(false);
+    controlsRef?.current && (controlsRef.current.enabled = true);
+  };
   // simple horizontal layout under grille
   const spacing = 0.13;
   const startX  = -(sliders.length - 1) * spacing * 0.5;
   const knobY   = 0.11;
   const knobZ   = 0.06;
+
+
+  // console.log('controlsRef?', !!controlsRef?.current);
 
   // ---------- actual model ----------------------------------------------
   return (
@@ -125,8 +140,11 @@ export default function Amp({
           position={[startX + i * spacing, knobY, knobZ]}
           ref={g => (knobRefs.current[i] = g)}
           {...dragBind(i)}
-          onPointerOver={() => setHover(true)}
-          onPointerOut ={() => setHover(false)}
+          // onPointerOver={() => setHover(true)}
+          // onPointerOut ={() => setHover(false)}
+          onPointerOver={handleOver}
+          onPointerOut ={handleOut}
+          onPointerDown={e => e.stopPropagation()}
         >
           <mesh
             geometry={nodes.Cylinder001.geometry}

@@ -42,8 +42,21 @@
 }
 
 .main-wrap{
-  position: relative;
+  position: absolute;
   z-index: 20;
+  /* height: 25vh; */
+  /* top: 0, */
+  
+}
+
+main{
+  /* background-color: #f0f; */
+  width: 100vw;
+  display: flex;
+  justify-content: space-around;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 .canvas-main{
   position: absolute;
@@ -53,4 +66,13 @@
   top: 0;
   left: 0;
   /* z-index: -1; */
+}
+
+.ampheader{
+  height: 25vh;
+  /* background-color: aqua; */
+}
+
+.AmpCab{
+  display: flex;
 }
