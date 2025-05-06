@@ -51,7 +51,7 @@ export default function AmpCab({
         factory={faustFactory}
         onPluginReady={handleAmpReady}
         onSlidersReady={onSlidersReady}
-        onSliderChange={onSliderChange}
+        // onSliderChange={onSliderChange}
       />
       <Cabinet
         audioContext={audioContext}

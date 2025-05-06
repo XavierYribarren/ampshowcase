@@ -10,8 +10,8 @@ import Surrounding from './Surrounding';
 export default function Scene({
   audioContext,
   mediaStream,
-  sliders = [], // NEW: meta from TubeAmp
-  values = {}, // NEW: { address → currentValue }
+  sliders , // NEW: meta from TubeAmp
+  values , // NEW: { address → currentValue }
   onDragSlider = () => {},
   ...props
 }) {

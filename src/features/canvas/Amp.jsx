@@ -1,9 +1,10 @@
 // src/features/amp/Amp.jsx
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo, useContext } from 'react';
 import { useGLTF, useTexture, useCursor } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useDrag } from '@use-gesture/react';
 import * as THREE from 'three';
+import { Knob } from './Knob';
 
 /* ─────────────────────────────  CONFIG  ─────────────────────────────── */
 const ROT_AXIS  = 'y';   // change to 'y' if your knobs rotate on Y
@@ -170,9 +171,7 @@ export default function Amp({
           onPointerOver={handleOver}
           onPointerOut={handleOut}
         >
-          <mesh geometry={nodes.Cylinder001.geometry}   material={blackPlastic} castShadow receiveShadow />
-          <mesh geometry={nodes.Cylinder001_1.geometry} material={metalMat}     castShadow receiveShadow />
-          <mesh geometry={nodes.Cylinder001_2.geometry} material={nodes.Cylinder001_2.material} castShadow receiveShadow />
+           <Knob />
         </group>
       ))}
     </group>

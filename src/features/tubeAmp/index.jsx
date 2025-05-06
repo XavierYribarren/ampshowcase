@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef,forwardRef, useImperativeHandle } from 'react';
 import { Knob, Pointer, Arc } from 'rc-knob';
 import { resample } from 'wave-resampler';
 
@@ -20,7 +20,7 @@ const getControlsByType = (node, ctrlType) =>
     ? node.fDescriptor.filter(descriptor => descriptor.type === ctrlType)
     : [];
 
-export default function TubeAmp({
+const TubeAmp = forwardRef(function TubeAmp({
   id,
   context,
   factory,
@@ -30,14 +30,14 @@ export default function TubeAmp({
   pluginProfile,
   onSlidersReady,   
    onSliderChange 
-}) {
+}, ref) {
   const [node, setNode] = useState(pluginNodes ? pluginNodes[1] : null);
   const [profileSource, setProfileSource] = useState(
     pluginProfile?.source || defaultProfile
   );
   const [profile, setProfile] = useState(pluginProfile);
   const fetchRef = useRef(false);
-
+  useImperativeHandle(ref, () => ({ setParam }), [node]);
   // compile the Faust node if not already provided
   useEffect(() => {
        if (!node && factory && context && compiler && !fetchRef.current) {
@@ -114,16 +114,24 @@ export default function TubeAmp({
     }
   }, [context, node, profileSource, pluginNodes, profile, onPluginReady, id]);
 
+  const appliedRef = useRef(false);
   // apply profile defaults to the node
-  useEffect(() => {
-    const entries = getControlsByType(node, 'nentry');
-    if (profile && entries.length) {
-      entries.forEach(descriptor => {
-        node.setParamValue(descriptor.address, profile[descriptor.label]);
-      });
-    }
-  }, [node, profile]);
+  // useEffect(() => {
+  //   const entries = getControlsByType(node, 'nentry');
+  //   if (profile && entries.length) {
+  //     entries.forEach(descriptor => {
+  //       node.setParamValue(descriptor.address, profile[descriptor.label]);
+  //     });
+  //   }
+  // }, [node, profile]);
+   useEffect(() => {
+       if (!appliedRef.current && profile && node) {
+         const entries = getControlsByType(node, 'nentry');
+         entries.forEach(d => node.setParamValue(d.address, profile[d.label]));
+         appliedRef.current = true;   // <-- run once
+        }
 
+     }, [node, profile]);
   const handleProfileChange = e => {
     setProfileSource(e.target.value);
   };
@@ -195,4 +203,5 @@ export default function TubeAmp({
       </div> */}
     </div>
   );
-}
+})
+export default TubeAmp
