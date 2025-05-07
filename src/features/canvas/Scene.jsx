@@ -17,22 +17,7 @@ export default function Scene({
   ...props
 }) {
   const controlsRef = useRef();
-  function UpdateRendererSettings() {
-    const { gl, camera } = useThree();
 
-    useEffect(() => {
-      // Modify the existing WebGLRenderer instance
-      // gl.physicallyCorrectLights = true
-      gl.outputEncoding = THREE.sRGBEncoding;
-      gl.toneMapping = THREE.ACESFilmicToneMapping;
-      gl.toneMappingExposure = 1.0;
-      // etc.
-      console.log(gl);
-    }, [gl]);
-
-    console.log(camera);
-    return null;
-  }
   return (
     <div className='canvas-main' style={{ width: '100%', height: '100%' }}>
       <Canvas
@@ -44,7 +29,7 @@ export default function Scene({
           antialias: true,
           alpha: true,
 
-          powerPreference: 'high-performance',
+          // powerPreference: 'high-performance',
           physicallyCorrectLights: true,
           outputEncoding: THREE.sRGBEncoding,
           toneMapping: THREE.ACESFilmicToneMapping,
@@ -52,37 +37,14 @@ export default function Scene({
         }}
         // legacy
       >
-        {/* <UpdateRendererSettings /> */}
+
         <Environment
           preset='city'
           // backgroundBlurriness={0.5}
           // background
           environmentIntensity={0.25}
         />
-        {/* <directionalLight
-          position={[0, 6, 2]}
-          intensity={2}
-          lookAt={[0, 0, 0]}
-          // scale={5}
-
-          castShadow
-          angle={0.3}
-          color={'#fff'}
-          shadow-camera-left={-40}
-          shadow-camera-right={40}
-          shadow-camera-top={40}
-          shadow-camera-bottom={-40}
-          shadow-camera-near={0.1}
-          shadow-camera-far={150}
-        /> */}
-        {/* <pointLight 
-        position={[0,7,3]}
-        intensity={54}
-        color={"#fdf3e6"}
-        castShadow
-        scale={5}
-        shadow-mapSize={[2048, 2048]}
-        /> */}
+  
         <directionalLight
           castShadow
           intensity={1.4}                 // lux
@@ -96,22 +58,7 @@ export default function Scene({
             args={[-15, 15, 15, -15]}
           />
         </directionalLight>
-        {/* <spotLight
-          position={[0, 10, 2]}
-          intensity={155}
-          lookAt={[0, 0, 0]}
-          scale={5}
-penumbra={.2}
-          castShadow
-          angle={0.83}
-          color={'#fff'}
-          shadow-camera-left={-40}
-          shadow-camera-right={40}
-          shadow-camera-top={40}
-          shadow-camera-bottom={-40}
-          shadow-camera-near={0.1}
-          shadow-camera-far={150}
-        /> */}
+      
 
         <OrbitControls ref={controlsRef} />
         <SoundEmitter
@@ -124,7 +71,9 @@ penumbra={.2}
           controlsRef={controlsRef}
         />
         <Surrounding />
-        <Perf />
+        {/* <Perf 
+        deepAnalyze
+        /> */}
       </Canvas>
     </div>
   );
@@ -173,10 +122,16 @@ function SoundEmitter({
       camera.remove(listener);
     };
   }, [audioContext, mediaStream, camera, distance]);
-  // console.log('[SoundEmitter] got values', Object.values(values));
-  // console.log('[Scene] sending sliders to Amp', sliders);
+
   const spacing = 1.1;
   const startX = -(sliders.length - 1) * 1 * 0.5;
+
+  const { invalidate, advance } = useThree();
+
+// Stop automatic rendering
+useEffect(() => {
+  invalidate(); // stop RAF
+}, []);
   return (
     <mesh ref={meshRef} position={[0, -1, -1]}>
       <AmpShell

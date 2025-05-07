@@ -181,7 +181,7 @@ export default function App() {
       <main className='main-wrap' style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
      <div className='select'>
 
-        <h2>🎸 Sample → TubeAmp + Cabinet → Master Out</h2>
+        {/* <h2>🎸 Sample → TubeAmp + Cabinet → Master Out</h2> */}
 
         <div>
           <input type="file" accept="audio/*" onChange={handleFile} />

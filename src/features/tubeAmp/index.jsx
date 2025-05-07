@@ -76,7 +76,6 @@ useEffect(() => {
 /* ─── load / switch profile & build IR ─────────────────────────── */
 useEffect(() => {
   if (!context || !faustNode) return;
-  // avoid re-loading if profile unchanged
   if (profile && profileSrc === profile.source) return;
 
   fetch(`${baseIR}/${encodeURI(profileSrc)}.tapf`)
@@ -84,45 +83,51 @@ useEffect(() => {
     .then(buffer => {
       let offset = 0;
 
-      // ── parse header into profile object ─────────────────────────────
       const header = buffer.slice(offset, offset + profileSize);
       offset += profileSize;
-      const f32    = new Float32Array(header);
-      const prof   = f32.reduce((acc, cur, idx) => {
+      const f32  = new Float32Array(header);
+      const prof = f32.reduce((acc, cur, idx) => {
         acc[ProfileProps[idx + 1]] = cur;
         return acc;
       }, {});
       prof.source = profileSrc;
       setProfile(prof);
 
-      // ── parse impulse data ────────────────────────────────────────────
+      // 🔧 Apply new profile values to faustNode
+      const entries = faustNode.fDescriptor?.filter(d => d.type === 'nentry') || [];
+      entries.forEach(d => {
+        const val = prof[d.label];
+        if (val !== undefined) {
+          faustNode.setParamValue(d.address, val);
+        }
+      });
+
       const impHeader = buffer.slice(offset, offset + impulseSize);
       offset += impulseSize;
-      const info      = new Int32Array(impHeader);
+      const info       = new Int32Array(impHeader);
       const sampleCount = info[2];
-      const impBytes    = sampleCount * 4;
-      const impBuffer   = buffer.slice(offset, offset + impBytes);
-      const impArray    = new Float32Array(impBuffer);
-      const resamp      = resample(impArray, info[0], context.sampleRate);
+      const impBytes   = sampleCount * 4;
+      const impBuffer  = buffer.slice(offset, offset + impBytes);
+      const impArray   = new Float32Array(impBuffer);
+      const resamp     = resample(impArray, info[0], context.sampleRate);
 
-      // ── create AudioBuffer and fill it ───────────────────────────────
       const irBuffer = context.createBuffer(1, resamp.length, context.sampleRate);
       irBuffer.getChannelData(0).set(resamp);
 
-      // ── build the ConvolverNode ─────────────────────────────────────
-      const conv = new ConvolverNode(context);
-      conv.buffer = irBuffer;
-      convRef.current = conv;
+      // 🔧 Reuse convolver
+      if (!convRef.current) {
+        convRef.current = new ConvolverNode(context);
+        faustNode.connect(convRef.current);
+      }
 
-      // ── wire Faust → Convolver ───────────────────────────────────────
-      faustNode.connect(conv);
+      convRef.current.buffer = irBuffer;
 
-      // ── notify parent, returns [convolver, preGain] so playSample chain works
-      // onPluginReady([conv, preGainRef.current], DSP_ADDR, id, prof);
-      onPluginReady([conv, faustNode], DSP_ADDR, id, prof);
+      // Notify parent
+      onPluginReady([convRef.current, faustNode], DSP_ADDR, id, prof);
     })
     .catch(err => console.error('[TubeAmp] profile load error', err));
 }, [context, faustNode, profileSrc, onPluginReady, id, profile]);
+
 
   /* ─── apply defaults once ────────────────────────────────────── */
   useEffect(() => {

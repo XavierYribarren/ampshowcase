@@ -1,5 +1,5 @@
 // src/features/amp/Knob.jsx
-import React, { useRef, useLayoutEffect, useState } from 'react';
+import React, { useRef, useLayoutEffect, useState, useMemo } from 'react';
 import { useGLTF, useCursor, useTexture, Text } from '@react-three/drei';
 import { useDrag } from '@use-gesture/react';
 import * as THREE from 'three';
@@ -83,8 +83,8 @@ const [knobComb, knobRough] = useTexture([
     controlsRef?.current && (controlsRef.current.enabled = !locked);
   knobComb.flipY = knobRough.flipY = false
 
-  const blackPlastic = new THREE.MeshStandardMaterial({ color: '#222',    roughness: 0.5, roughnessMap: knobRough });
-  const metalMat     = new THREE.MeshStandardMaterial({ metalness: 1,     roughness: 0.1 });
+  const blackPlastic = useMemo(() => new THREE.MeshStandardMaterial({ color: '#222',    roughness: 0.5, roughnessMap: knobRough }), []);
+  const metalMat     = useMemo(() => new THREE.MeshStandardMaterial({ metalness: 1,     roughness: 0.1 }), []);
 
 //  console.log(desc)
   return (

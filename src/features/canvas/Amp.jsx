@@ -1,5 +1,5 @@
 // src/features/amp/Amp.jsx   ⟨static chassis – no knobs, no state⟩
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -37,16 +37,16 @@ export default function AmpShell(props) {
     plateAO.flipY = false;
 
   /* materials -------------------------------------------------------- */
-  const ampMat = new THREE.MeshStandardMaterial({
+  const ampMat = useMemo(() =>new THREE.MeshStandardMaterial({
     normalMap: ampNorm,
     roughnessMap: ampRough,
     bumpMap: ampBump,
     normalMapType: THREE.TangentSpaceNormalMap,
     // side: THREE.DoubleSide
   
-  });
+  }), []);
 
-  const plateGridMat = new THREE.MeshPhysicalMaterial({
+  const plateGridMat = useMemo(() =>new THREE.MeshPhysicalMaterial({
     map:          plateCol,
     toneMapped: THREE.NoToneMapping,
     // normalMap:    plateNorm,
@@ -65,11 +65,11 @@ export default function AmpShell(props) {
     // metalness: .8,
     // metalnessMap: plateMetal,
    
-  });
+  }), []);
 
-  const gridCurveMat = new THREE.MeshStandardMaterial({ color: '#51D6E7', roughness: 0.5 });
-  const blackPlastic = new THREE.MeshStandardMaterial({ color: '#222',    roughness: 0.5 });
-  const metalMat     = new THREE.MeshStandardMaterial({ metalness: 1,     roughness: 0.1, envMapIntensity: 2.5, });
+  const gridCurveMat = useMemo(() =>new THREE.MeshStandardMaterial({ color: '#51D6E7', roughness: 0.5 }), []);
+  const blackPlastic = useMemo(() =>new THREE.MeshStandardMaterial({ color: '#222',    roughness: 0.5 }), []);
+  const metalMat     = useMemo(() =>new THREE.MeshStandardMaterial({ metalness: 1,     roughness: 0.1, envMapIntensity: 2.5, }), []);
 
   /* render ----------------------------------------------------------- */
   return (
@@ -82,7 +82,7 @@ export default function AmpShell(props) {
       <mesh geometry={nodes.Jack_plug.geometry}   material={metalMat}     castShadow receiveShadow />
       <mesh geometry={nodes.Amp_case001.geometry} material={ampMat}       castShadow receiveShadow />
       <mesh geometry={nodes.Plate_Grid.geometry}  material={plateGridMat} castShadow receiveShadow />
-      {/* no <Knob/> here – Scene.jsx will mount them where it wants */}
+   
     </group>
   );
 }
