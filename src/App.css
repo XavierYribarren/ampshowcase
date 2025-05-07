@@ -40,3 +40,50 @@
 .read-the-docs {
   color: #888;
 }
+
+.main-wrap{
+  position: absolute;
+  z-index: 20;
+  /* height: 25vh; */
+  /* top: 0, */
+  
+}
+
+main{
+  /* background-color: #f0f; */
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.select{
+  display: flex;
+}
+
+.trackviz{
+  width: 60%;
+  
+  margin: auto;
+}
+.canvas-main{
+  position: absolute;
+  /* background-color: aqua; */
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  /* z-index: -1; */
+}
+
+.ampheader{
+  height: 25vh;
+  /* background-color: aqua; */
+}
+
+.AmpCab{
+  display: flex;
+}
