@@ -22,7 +22,13 @@ function Surrounding() {
         <cylinderGeometry args={[50, 50, 52, 52, 32, false, 2.11, 8.11]} />
         <meshBasicMaterial color={'#ddd'} side={THREE.DoubleSide} />
       </mesh>
-      <Text scale={12} position={[0, 6, -10]} color={"#eee"} outlineColor={"#fff"} outlineWidth={.01}>
+      <Text
+        scale={12}
+        position={[0, 6, -10]}
+        color={'#f6f6f6'}
+        // outlineColor={'#ececec'}
+        // outlineWidth={0.01}
+      >
         WEBAMP
       </Text>
     </>

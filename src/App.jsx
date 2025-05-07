@@ -39,6 +39,7 @@ export default function App() {
   const destRef     = useRef(null);  // MediaStreamAudioDestinationNode
   const audioElRef = useRef(null);   // HTMLAudioElement
   const slidersReadyRef = useRef();
+  const stoppedRef = useRef(false);
 
   const [loaded,  setLoaded]  = useState(false);
   const [running, setRunning] = useState(false);
@@ -130,27 +131,37 @@ export default function App() {
     return () => cancelAnimationFrame(rafId);
   }, [running, audioContext]);
   // 4) Play the sample
-  async function playSample() {
-    if (!audioContext || !bufRef.current || running) return;
+  async function playSample(restart = false) {
+    if (!audioContext || !bufRef.current) return;
+    if (!restart && running) return;
+    stoppedRef.current = false;
     await audioContext.resume();
-
+  
     masterGainRef.current.disconnect();
-
+  
     if (!destRef.current) {
       const dest = audioContext.createMediaStreamDestination();
       destRef.current = dest;
-
+  
       const a = new Audio();
-      a.muted     = true;
+      a.muted = true;
       a.srcObject = dest.stream;
       audioElRef.current = a;
     }
-
+  
     const src = audioContext.createBufferSource();
     src.buffer = bufRef.current;
-    src.loop   = loop;
-    src.onended = () => stopSample();
-
+    src.loop = false;
+  
+    src.onended = () => {
+      if (loop && !stoppedRef.current) {
+        setCurrentTime(0); // reset progress bar
+        playSample(true);  // loop with reset
+      } else {
+        stopSample();
+      }
+    };
+  
     if (bypass) {
       src.connect(masterGainRef.current);
       masterGainRef.current.connect(audioContext.destination);
@@ -162,19 +173,21 @@ export default function App() {
         .connect(masterGainRef.current);
       masterGainRef.current.connect(destRef.current);
     }
-
+  
     srcRef.current = src;
     startTimeRef.current = audioContext.currentTime;
-
-    src.start();
+    setCurrentTime(0); // reset UI
     setRunning(true);
+  
+    src.start();
     audioElRef.current?.play().catch(() => {});
-
-   
+  
+    requestAnimationFrame(updateProgress);
   }
+  
 
-  // 5) Stop sample
   function stopSample() {
+    stoppedRef.current = true;
     srcRef.current?.stop();
     setRunning(false);
     setCurrentTime(0);
