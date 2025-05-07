@@ -1,7 +1,7 @@
 #root {
   max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  /* margin: 0 auto; */
+  /* padding: 2rem; */
   text-align: center;
 }
 
@@ -65,9 +65,16 @@ main{
 }
 
 .trackviz{
-  width: 60%;
-  
-  margin: auto;
+  width: 100%;
+  /* height: 100vh; */
+  /* margin: auto; */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  align-items: center;
+  opacity: 60%;
+  mix-blend-mode: overlay;
+  /* background-color: aqua; */
 }
 .canvas-main{
   position: absolute;

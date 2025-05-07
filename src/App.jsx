@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import AmpCab from './AmpCab';
 import {
   instantiateFaustModuleFromFile,
@@ -11,12 +11,17 @@ import {
 import libfaustUrl from '@grame/faustwasm/libfaust-wasm/libfaust-wasm.js?url';
 import './App.css';
 import Scene from './features/canvas/Scene';
+import Waveform from './features/controls/WaveForm';
+import WaveForm from './features/controls/WaveForm';
 
 export default function App() {
   // ——— Audio engine & Faust ———
   const [audioContext,  setAudioContext]  = useState(null);
   const [faustCompiler, setFaustCompiler] = useState(null);
   const [faustFactory,  setFaustFactory]  = useState(null);
+
+  const [audioFile, setAudioFile] = useState(null);
+
 
   // ——— TubeAmp→Cabinet ends ———
   const [tubeNode,           setTubeNode]           = useState(null);
@@ -29,9 +34,11 @@ export default function App() {
   const srcRef        = useRef(null);
   const startTimeRef  = useRef(0);
   const cabinetConvolverRef = useRef(null);
+  const analyserRef = useRef(null);
 
   const destRef     = useRef(null);  // MediaStreamAudioDestinationNode
   const audioElRef = useRef(null);   // HTMLAudioElement
+  const slidersReadyRef = useRef();
 
   const [loaded,  setLoaded]  = useState(false);
   const [running, setRunning] = useState(false);
@@ -101,18 +108,27 @@ export default function App() {
     }
     bufRef.current = audioBuf;
     setDuration(audioBuf.duration);
+    setAudioFile(file);
     setLoaded(true);
   }
 
   // Progress updater
-  function updateProgress() {
-    if (running && srcRef.current) {
-      const elapsed = audioContext.currentTime - startTimeRef.current;
-      setCurrentTime(elapsed);
-      if (elapsed < duration) requestAnimationFrame(updateProgress);
+  useEffect(() => {
+    let rafId;
+    const update = () => {
+      if (running && audioContext) {
+        const elapsed = audioContext.currentTime - startTimeRef.current;
+        setCurrentTime(elapsed);
+        rafId = requestAnimationFrame(update);
+      }
+    };
+  
+    if (running) {
+      rafId = requestAnimationFrame(update);
     }
-  }
-
+  
+    return () => cancelAnimationFrame(rafId);
+  }, [running, audioContext]);
   // 4) Play the sample
   async function playSample() {
     if (!audioContext || !bufRef.current || running) return;
@@ -154,7 +170,7 @@ export default function App() {
     setRunning(true);
     audioElRef.current?.play().catch(() => {});
 
-    requestAnimationFrame(updateProgress);
+   
   }
 
   // 5) Stop sample
@@ -165,16 +181,63 @@ export default function App() {
   }
 
   // Slider callbacks
-  const handleSlidersReady = meta => {
+  const handleSlidersReady = useCallback((meta) => {
     setSliderMeta(meta);
     setSliderVals(Object.fromEntries(meta.map(m => [m.address, m.init])));
-    handleSlidersReady.ref = tubeRef;
-  };
+    slidersReadyRef.current = tubeRef;
+  }, []);
 
   const handleSliderDrag = (addr, val) => {
     tubeRef.current?.setParam(addr, val);
     setSliderVals(vals => ({ ...vals, [addr]: val }));
   };
+
+
+
+  function handleSeek(timeInSeconds) {
+    if (audioContext && srcRef.current) {
+      try {
+        srcRef.current.stop();
+      } catch {}
+  
+      const newSrc = audioContext.createBufferSource();
+      newSrc.buffer = bufRef.current;
+      newSrc.loop   = loop;
+      newSrc.onended = () => stopSample();
+  
+      if (bypass) {
+        newSrc.connect(masterGainRef.current);
+        masterGainRef.current.connect(audioContext.destination);
+      } else {
+        newSrc
+          .connect(tubeNode)
+          .connect(preampConvolver)
+          .connect(cabinetConvolverRef.current)
+          .connect(masterGainRef.current);
+        masterGainRef.current.connect(destRef.current);
+      }
+  
+      srcRef.current = newSrc;
+      startTimeRef.current = audioContext.currentTime - timeInSeconds;
+  
+      newSrc.start(0, timeInSeconds);
+      setRunning(true);
+      requestAnimationFrame(updateProgress);
+    }
+  }
+  useEffect(() => {
+    if (!audioContext || analyserRef.current) return;
+  
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    analyserRef.current = analyser;
+  
+    if (cabinetConvolverRef.current && masterGainRef.current) {
+      cabinetConvolverRef.current.disconnect();
+      cabinetConvolverRef.current.connect(analyser);
+      analyser.connect(masterGainRef.current);
+    }
+  }, [audioContext]);
 
   return (
     <div className="App-main">
@@ -237,21 +300,7 @@ export default function App() {
             />
           )}
           </div>
-        <div style={{ marginTop: '1rem', }} className='trackviz'>
-          <input
-            type="range"
-            min={0}
-            max={duration}
-            step={0.01}
-            value={Math.min(currentTime, duration)}
-            readOnly
-            style={{ width: '100%' }}
-          />
-          <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
-            {new Date(currentTime * 1000).toISOString().substr(14, 5)} /
-            {new Date(duration    * 1000).toISOString().substr(14, 5)}
-          </div>
-        </div>
+
       </main>
 
       {/* 3D scene with knobs */}
@@ -261,7 +310,21 @@ export default function App() {
         sliders={sliderMeta}
         values={sliderVals}
         onDragSlider={handleSliderDrag}
-      />
+      />      
+        <div style={{ marginTop: '1rem', }} className='trackviz'>
+        {/* <Waveform buffer={bufRef.current} currentTime={currentTime} />
+    <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
+      {new Date(currentTime * 1000).toISOString().substr(14, 5)} /
+      {new Date(duration    * 1000).toISOString().substr(14, 5)}
+    </div> */}
+<WaveForm
+  buffer={bufRef.current}
+  currentTime={currentTime}
+  duration={duration}
+/>
+
+
+        </div>
     </div>
   );
 }

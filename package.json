@@ -30,6 +30,7 @@
     "three": "^0.176.0",
     "uuid": "^11.1.0",
     "wave-resampler": "^1.0.0",
+    "wavesurfer.js": "^7.9.5",
     "web-vitals": "^4.2.4"
   },
   "devDependencies": {
