@@ -42,6 +42,7 @@ export default function AmpShell(props) {
     roughnessMap: ampRough,
     bumpMap: ampBump,
     normalMapType: THREE.TangentSpaceNormalMap,
+    // side: THREE.DoubleSide
   
   });
 

@@ -53,10 +53,21 @@ main{
   /* background-color: #f0f; */
   width: 100vw;
   display: flex;
+  flex-direction: column;
   justify-content: space-around;
   position: absolute;
   top: 0;
   left: 0;
+}
+
+.select{
+  display: flex;
+}
+
+.trackviz{
+  width: 60%;
+  
+  margin: auto;
 }
 .canvas-main{
   position: absolute;

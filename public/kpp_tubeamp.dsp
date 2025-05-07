@@ -61,6 +61,7 @@ process = preamp_amp with {
     preamp_Upor = nentry("preamp_Upor", 1, 0, 1, 0.01);
     preamp_Kreg = nentry("preamp_Kreg", 1, 0, 10, 0.01);
 
+    preGain  = vslider("preGain", 1, 0, 10, 0.01);
 
     tonestack_low = vslider("bass", 0, -10, 10, 0.0001);
     tonestack_middle = vslider("middle", 0, -10, 10, 0.0001);
@@ -120,14 +121,17 @@ process = preamp_amp with {
       *(ba.db2linear(mastergain * 0.4) - 1) :
       stage_tonestack;
 
-    preamp_amp =
-      pre_sag :
-      (_,_ : (_<: (1.0/_),_),_ : _,* : _,stage_amp : *)  
-    ~ (_ <: _,_: * : fi.lowpass(1,sag_time) : *(sag_coeff) :
-        max(1.0) : min(2.5)) :
-      *(volume) :
-      *(output_level) :
-      fi.dcblocker <: _,_;
+
+preamp_amp =
+   (_ * preGain) : _ <: _,_ :   // Apply preGain, then split to stereo
+  pre_sag :
+  (_,_ : (_<: (1.0/_),_),_ : _,* : _,stage_amp : *)  
+~ (_ <: _,_: * : fi.lowpass(1,sag_time) : *(sag_coeff) :
+    max(1.0) : min(2.5)) :
+  *(volume) :
+  *(output_level) :
+  fi.dcblocker <: _,_;
+
 };
 
 

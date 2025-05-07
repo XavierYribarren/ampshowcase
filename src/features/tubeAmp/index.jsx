@@ -24,7 +24,7 @@ const getByType = (n, t) => n?.fDescriptor?.filter(d => d.type === t) || [];
 /* virtual knob */
 const PRE_GAIN = {
   label: 'preGain', address: '/preGain', type: 'vslider',
-  min: 0, max: 20, init: 1, step: 0.01
+  min: 0, max: 40, init: 1, step: 0.01
 };
 const ORDER = ['pregain', 'drive', 'bass', 'middle', 'treble', 'volume'];
 
@@ -169,7 +169,7 @@ useEffect(() => {
 
   return (
     <div className="plugin amp-head">
-      <div className="plugin-title">{faustNode.fJSONDsp?.name}</div>
+      {/* <div className="plugin-title">{faustNode.fJSONDsp?.name}</div> */}
       <label htmlFor="profile">Choose&nbsp;Profile&nbsp;</label>
       <select
         id="profile"
