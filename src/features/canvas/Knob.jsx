@@ -91,7 +91,7 @@ const [knobComb, knobRough] = useTexture([
     <group
       {...props}
       {...bind()}
-      onPointerOver={() => { setHover(true);  toggleOrbit(true);  }}
+      onPointerOver={() => { setHover(true);  toggleOrbit(true); console.log(desc) }}
       onPointerOut ={() => { setHover(false); toggleOrbit(false); }}
       dispose={null}
     >

@@ -9,7 +9,7 @@ import {
 } from '@grame/faustwasm';
 // Vite will give us the final URL at runtime
 import libfaustUrl from '@grame/faustwasm/libfaust-wasm/libfaust-wasm.js?url';
-import './App.css';
+import './App.scss';
 import Scene from './features/canvas/Scene';
 import Waveform from './features/controls/WaveForm';
 import WaveForm from './features/controls/WaveForm';
@@ -254,7 +254,7 @@ export default function App() {
 
   return (
     <div className="App-main">
-      <main className='main-wrap' style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+      <main className='main-wrap' style={{ fontFamily: 'sans-serif' }}>
      <div className='select'>
 
         {/* <h2>🎸 Sample → TubeAmp + Cabinet → Master Out</h2> */}
@@ -273,18 +273,23 @@ export default function App() {
           </label>
         </div>
 
-        <div style={{ marginTop: '1rem' }}>
-          <label>
+        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column'
+         }}>
+          {/* <label> */}
             Master Gain:&nbsp;
+           <div>
             <input
               type="range" min="0" max="10" step="0.01"
               value={gain}
               onChange={e => setGain(parseFloat(e.target.value))}
-            /> {gain.toFixed(2)}
-          </label>
+              className='range-style'
+              /> 
+              {/* {gain.toFixed(2)} */}
+              </div>
+          {/* </label> */}
         </div>
 
-        <div style={{ marginTop: '1rem' }}>
+        {/* <div style={{ marginTop: '1rem' }}>
           <label>
             <input
               type="checkbox"
@@ -293,7 +298,7 @@ export default function App() {
               /> Bypass Amp (direct sound)
           </label>
         </div>
-    
+     */}
         {/* Progress bar & timer */}
 
         {/* Mount AmpCab only once Faust is ready */}

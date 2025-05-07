@@ -18,7 +18,7 @@ const TEX = [
 
 /* static chassis component ------------------------------------------- */
 export default function AmpShell(props) {
-  const { nodes } = useGLTF('/amptestOPT.glb');
+  const { nodes } = useGLTF('/amptestOPTIN.glb');
   const [
     ampCol, ampNorm, ampRough, ampBump,
     plateCol, plateNorm, plateRough,plateMetal, plateAO
@@ -82,9 +82,18 @@ export default function AmpShell(props) {
       <mesh geometry={nodes.Jack_plug.geometry}   material={metalMat}     castShadow receiveShadow />
       <mesh geometry={nodes.Amp_case001.geometry} material={ampMat}       castShadow receiveShadow />
       <mesh geometry={nodes.Plate_Grid.geometry}  material={plateGridMat} castShadow receiveShadow />
+      <mesh
+        castShadow
+        receiveShadow
+        geometry={nodes.BackInside.geometry}
+        material={blackPlastic}
+        position={[5.104, -0.74, 1.779]}
+        rotation={[Math.PI / 2, 0, 0]}
+        scale={[0.258, 1, 1]}
+      />
    
     </group>
   );
 }
 
-useGLTF.preload('/amptestOPT.glb');
+useGLTF.preload('/amptestOPTIN.glb');

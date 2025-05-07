@@ -37,13 +37,13 @@ export default function Cabinet({ audioContext, convolver }) {
 
   return (
     <>
+        <div htmlFor="ir">Choose your IR</div>
       <div className="cabinet" onClick={changePosition}>
         <img className="speaker" src="/speaker.png" alt="Speaker"/>
         <img className={`mic mic--${positions[position]}`}
              src="/shure_sm57.png" alt="Mic" />
       </div>
       <div className="ir-input">
-        <label htmlFor="ir">Choose your IR</label>
         <input type="file" id="ir" accept="audio/*"
                onChange={onIRInput} />
       </div>

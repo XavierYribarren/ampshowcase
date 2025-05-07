@@ -47,7 +47,7 @@ process = preamp_amp with {
     // Knob parameters copied from kpp_tubeamp.ttl
     drive = vslider("drive", 100, 0, 100, 0.01);
     volume = vslider("volume", 5, 0, 11, 0.001);
-    mastergain = vslider("mastergain", 50, 0, 100, 0.01);
+    mastergain = nentry("mastergain", 100, 0, 100, 0.01);
 
     // Bias signal before distortion
     amp_bias = nentry("amp_bias", 1, 0, 1, 0.001);
