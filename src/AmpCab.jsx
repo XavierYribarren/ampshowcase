@@ -64,12 +64,12 @@ export default function AmpCab({
 </button>
 
 <div className={`ir-panel ${open ? 'open' : 'closed'}`}>
-  {open && (
+  
     <Cabinet
       audioContext={audioContext}
       convolver={cabinetConvolver}
     />
-  )}
+
 </div>
     </div>
   )

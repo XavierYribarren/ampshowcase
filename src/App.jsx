@@ -251,7 +251,17 @@ export default function App() {
       analyser.connect(masterGainRef.current);
     }
   }, [audioContext]);
-
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file || !audioContext) return;
+    const arrayBuffer = await file.arrayBuffer();
+    audioContext.decodeAudioData(arrayBuffer, buffer => {
+      bufRef.current = buffer;
+      setDuration(buffer.duration);
+      setAudioFile(file);
+      setLoaded(true);
+    }, err => console.error("decodeAudioData failed:", err));
+  }
   return (
     <div className="App-main">
       <main className='main-wrap' style={{ fontFamily: 'sans-serif' }}>
@@ -260,7 +270,9 @@ export default function App() {
         {/* <h2>🎸 Sample → TubeAmp + Cabinet → Master Out</h2> */}
 
         <div>
-          <input type="file" accept="audio/*" onChange={handleFile} />
+        <input type="file" accept="audio/*" id="audioFileInput" onChange={handleFile} className="hidden" />
+            <label htmlFor="audioFileInput" className="file-input-label">🎵 Select Audio File</label>
+            {audioFile && <span className="file-name">{audioFile.name}</span>}
           <button onClick={playSample} disabled={!loaded || running}>
             {running ? 'Playing…' : loaded ? 'Play Sample' : 'Load Sample'}
           </button>

@@ -150,3 +150,27 @@ $primary: #e0e0e0;
   height: 25vh;
 }
 
+.hidden {
+  display: none;
+}
+
+.file-input-label {
+  cursor: pointer;
+  background-color: #3b82f6; /* blue */
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  font-weight: 500;
+}
+
+.file-input-label:hover {
+  background-color: #2563eb; /* darker blue on hover */
+}
+
+.file-name {
+  margin-left: 12px;
+  color: #374151; /* dark gray */
+  font-weight: 400;
+  font-size: 0.95rem;
+}
