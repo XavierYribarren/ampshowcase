@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import AmpCab from './AmpCab';
 import {
   instantiateFaustModuleFromFile,
@@ -9,14 +9,19 @@ import {
 } from '@grame/faustwasm';
 // Vite will give us the final URL at runtime
 import libfaustUrl from '@grame/faustwasm/libfaust-wasm/libfaust-wasm.js?url';
-import './App.css';
+import './App.scss';
 import Scene from './features/canvas/Scene';
+import Waveform from './features/controls/WaveForm';
+import WaveForm from './features/controls/WaveForm';
 
 export default function App() {
   // ——— Audio engine & Faust ———
   const [audioContext,  setAudioContext]  = useState(null);
   const [faustCompiler, setFaustCompiler] = useState(null);
   const [faustFactory,  setFaustFactory]  = useState(null);
+
+  const [audioFile, setAudioFile] = useState(null);
+
 
   // ——— TubeAmp→Cabinet ends ———
   const [tubeNode,           setTubeNode]           = useState(null);
@@ -29,9 +34,12 @@ export default function App() {
   const srcRef        = useRef(null);
   const startTimeRef  = useRef(0);
   const cabinetConvolverRef = useRef(null);
+  const analyserRef = useRef(null);
 
   const destRef     = useRef(null);  // MediaStreamAudioDestinationNode
   const audioElRef = useRef(null);   // HTMLAudioElement
+  const slidersReadyRef = useRef();
+  const stoppedRef = useRef(false);
 
   const [loaded,  setLoaded]  = useState(false);
   const [running, setRunning] = useState(false);
@@ -101,40 +109,59 @@ export default function App() {
     }
     bufRef.current = audioBuf;
     setDuration(audioBuf.duration);
+    setAudioFile(file);
     setLoaded(true);
   }
 
   // Progress updater
-  function updateProgress() {
-    if (running && srcRef.current) {
-      const elapsed = audioContext.currentTime - startTimeRef.current;
-      setCurrentTime(elapsed);
-      if (elapsed < duration) requestAnimationFrame(updateProgress);
+  useEffect(() => {
+    let rafId;
+    const update = () => {
+      if (running && audioContext) {
+        const elapsed = audioContext.currentTime - startTimeRef.current;
+        setCurrentTime(elapsed);
+        rafId = requestAnimationFrame(update);
+      }
+    };
+  
+    if (running) {
+      rafId = requestAnimationFrame(update);
     }
-  }
-
+  
+    return () => cancelAnimationFrame(rafId);
+  }, [running, audioContext]);
   // 4) Play the sample
-  async function playSample() {
-    if (!audioContext || !bufRef.current || running) return;
+  async function playSample(restart = false) {
+    if (!audioContext || !bufRef.current) return;
+    if (!restart && running) return;
+    stoppedRef.current = false;
     await audioContext.resume();
-
+  
     masterGainRef.current.disconnect();
-
+  
     if (!destRef.current) {
       const dest = audioContext.createMediaStreamDestination();
       destRef.current = dest;
-
+  
       const a = new Audio();
-      a.muted     = true;
+      a.muted = true;
       a.srcObject = dest.stream;
       audioElRef.current = a;
     }
-
+  
     const src = audioContext.createBufferSource();
     src.buffer = bufRef.current;
-    src.loop   = loop;
-    src.onended = () => stopSample();
-
+    src.loop = false;
+  
+    src.onended = () => {
+      if (loop && !stoppedRef.current) {
+        setCurrentTime(0); // reset progress bar
+        playSample(true);  // loop with reset
+      } else {
+        stopSample();
+      }
+    };
+  
     if (bypass) {
       src.connect(masterGainRef.current);
       masterGainRef.current.connect(audioContext.destination);
@@ -146,45 +173,106 @@ export default function App() {
         .connect(masterGainRef.current);
       masterGainRef.current.connect(destRef.current);
     }
-
+  
     srcRef.current = src;
     startTimeRef.current = audioContext.currentTime;
-
-    src.start();
+    setCurrentTime(0); // reset UI
     setRunning(true);
+  
+    src.start();
     audioElRef.current?.play().catch(() => {});
-
+  
     requestAnimationFrame(updateProgress);
   }
+  
 
-  // 5) Stop sample
   function stopSample() {
+    stoppedRef.current = true;
     srcRef.current?.stop();
     setRunning(false);
     setCurrentTime(0);
   }
 
   // Slider callbacks
-  const handleSlidersReady = meta => {
+  const handleSlidersReady = useCallback((meta) => {
     setSliderMeta(meta);
     setSliderVals(Object.fromEntries(meta.map(m => [m.address, m.init])));
-    handleSlidersReady.ref = tubeRef;
-  };
+    slidersReadyRef.current = tubeRef;
+  }, []);
 
   const handleSliderDrag = (addr, val) => {
     tubeRef.current?.setParam(addr, val);
     setSliderVals(vals => ({ ...vals, [addr]: val }));
   };
 
+
+
+  function handleSeek(timeInSeconds) {
+    if (audioContext && srcRef.current) {
+      try {
+        srcRef.current.stop();
+      } catch {}
+  
+      const newSrc = audioContext.createBufferSource();
+      newSrc.buffer = bufRef.current;
+      newSrc.loop   = loop;
+      newSrc.onended = () => stopSample();
+  
+      if (bypass) {
+        newSrc.connect(masterGainRef.current);
+        masterGainRef.current.connect(audioContext.destination);
+      } else {
+        newSrc
+          .connect(tubeNode)
+          .connect(preampConvolver)
+          .connect(cabinetConvolverRef.current)
+          .connect(masterGainRef.current);
+        masterGainRef.current.connect(destRef.current);
+      }
+  
+      srcRef.current = newSrc;
+      startTimeRef.current = audioContext.currentTime - timeInSeconds;
+  
+      newSrc.start(0, timeInSeconds);
+      setRunning(true);
+      requestAnimationFrame(updateProgress);
+    }
+  }
+  useEffect(() => {
+    if (!audioContext || analyserRef.current) return;
+  
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    analyserRef.current = analyser;
+  
+    if (cabinetConvolverRef.current && masterGainRef.current) {
+      cabinetConvolverRef.current.disconnect();
+      cabinetConvolverRef.current.connect(analyser);
+      analyser.connect(masterGainRef.current);
+    }
+  }, [audioContext]);
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file || !audioContext) return;
+    const arrayBuffer = await file.arrayBuffer();
+    audioContext.decodeAudioData(arrayBuffer, buffer => {
+      bufRef.current = buffer;
+      setDuration(buffer.duration);
+      setAudioFile(file);
+      setLoaded(true);
+    }, err => console.error("decodeAudioData failed:", err));
+  }
   return (
     <div className="App-main">
-      <main className='main-wrap' style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+      <main className='main-wrap' style={{ fontFamily: 'sans-serif' }}>
      <div className='select'>
 
         {/* <h2>🎸 Sample → TubeAmp + Cabinet → Master Out</h2> */}
 
         <div>
-          <input type="file" accept="audio/*" onChange={handleFile} />
+        <input type="file" accept="audio/*" id="audioFileInput" onChange={handleFile} className="hidden" />
+            <label htmlFor="audioFileInput" className="file-input-label">🎵 Select Audio File</label>
+            {audioFile && <span className="file-name">{audioFile.name}</span>}
           <button onClick={playSample} disabled={!loaded || running}>
             {running ? 'Playing…' : loaded ? 'Play Sample' : 'Load Sample'}
           </button>
@@ -197,18 +285,23 @@ export default function App() {
           </label>
         </div>
 
-        <div style={{ marginTop: '1rem' }}>
-          <label>
+        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column'
+         }}>
+          {/* <label> */}
             Master Gain:&nbsp;
+           <div>
             <input
               type="range" min="0" max="10" step="0.01"
               value={gain}
               onChange={e => setGain(parseFloat(e.target.value))}
-            /> {gain.toFixed(2)}
-          </label>
+              className='range-style'
+              /> 
+              {/* {gain.toFixed(2)} */}
+              </div>
+          {/* </label> */}
         </div>
 
-        <div style={{ marginTop: '1rem' }}>
+        {/* <div style={{ marginTop: '1rem' }}>
           <label>
             <input
               type="checkbox"
@@ -217,7 +310,7 @@ export default function App() {
               /> Bypass Amp (direct sound)
           </label>
         </div>
-    
+     */}
         {/* Progress bar & timer */}
 
         {/* Mount AmpCab only once Faust is ready */}
@@ -237,21 +330,7 @@ export default function App() {
             />
           )}
           </div>
-        <div style={{ marginTop: '1rem', }} className='trackviz'>
-          <input
-            type="range"
-            min={0}
-            max={duration}
-            step={0.01}
-            value={Math.min(currentTime, duration)}
-            readOnly
-            style={{ width: '100%' }}
-          />
-          <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
-            {new Date(currentTime * 1000).toISOString().substr(14, 5)} /
-            {new Date(duration    * 1000).toISOString().substr(14, 5)}
-          </div>
-        </div>
+
       </main>
 
       {/* 3D scene with knobs */}
@@ -261,7 +340,21 @@ export default function App() {
         sliders={sliderMeta}
         values={sliderVals}
         onDragSlider={handleSliderDrag}
-      />
+      />      
+        <div style={{ marginTop: '1rem', }} className='trackviz'>
+        {/* <Waveform buffer={bufRef.current} currentTime={currentTime} />
+    <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
+      {new Date(currentTime * 1000).toISOString().substr(14, 5)} /
+      {new Date(duration    * 1000).toISOString().substr(14, 5)}
+    </div> */}
+<WaveForm
+  buffer={bufRef.current}
+  currentTime={currentTime}
+  duration={duration}
+/>
+
+
+        </div>
     </div>
   );
 }

@@ -91,7 +91,7 @@ const [knobComb, knobRough] = useTexture([
     <group
       {...props}
       {...bind()}
-      onPointerOver={() => { setHover(true);  toggleOrbit(true);  }}
+      onPointerOver={() => { setHover(true);  toggleOrbit(true); console.log(desc) }}
       onPointerOut ={() => { setHover(false); toggleOrbit(false); }}
       dispose={null}
     >
@@ -107,9 +107,9 @@ const [knobComb, knobRough] = useTexture([
       <Text 
       position={[0,-.3,.21]}
       // rotation={[tilt, 0, 0]}
-      scale={.15}
+      scale={.12}
       >
-        {desc.label}
+        {desc.label.toUpperCase()}
       </Text>
     </group>
   );

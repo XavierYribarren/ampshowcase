@@ -26,10 +26,13 @@
     "rc-knob": "github:vallsv/rc-knob",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-select": "^5.10.1",
     "resize-observer-polyfill": "^1.5.1",
+    "sass": "^1.87.0",
     "three": "^0.176.0",
     "uuid": "^11.1.0",
     "wave-resampler": "^1.0.0",
+    "wavesurfer.js": "^7.9.5",
     "web-vitals": "^4.2.4"
   },
   "devDependencies": {

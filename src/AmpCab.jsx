@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import TubeAmp  from './features/tubeAmp'
 import Cabinet  from './features/cabinet'
+import './AmpCab.css'
 
 export default function AmpCab({
   audioContext,
@@ -12,10 +13,11 @@ export default function AmpCab({
   onSlidersReady, onSliderChange,
   tubeRef
 }) {
-  const [ampConvolver,   setAmpConvolver]   = useState(null)
+  // const [ampConvolver,   setAmpConvolver]   = useState(null)
   const [cabConvolver,   setCabConvolver]   = useState(null)
-  const [sliderMeta, setSliderMeta] = useState([]);
-  const [sliderVals, setSliderVals] = useState({});
+  // const [sliderMeta, setSliderMeta] = useState([]);
+  // const [sliderVals, setSliderVals] = useState({});
+  const [open, setOpen] = useState(false);
   // Called by TubeAmp when its DSP node + preamp convolver are ready
   // const handleAmpReady = ([preampConvolver, faustNode]) => {
   //   // Wire them together internally
@@ -53,11 +55,22 @@ export default function AmpCab({
         onSlidersReady={onSlidersReady}
         // onSliderChange={onSliderChange}
       />
-      <Cabinet
-        audioContext={audioContext}
-        // onCabReady={handleCabReady}
-        convolver={cabinetConvolver}
-      />
+
+<button
+  onClick={() => setOpen(!open)}
+  className={`ir-button ${open ? 'open' : ''}`}
+>
+  {open ? 'Close' : 'IR'}
+</button>
+
+<div className={`ir-panel ${open ? 'open' : 'closed'}`}>
+  
+    <Cabinet
+      audioContext={audioContext}
+      convolver={cabinetConvolver}
+    />
+
+</div>
     </div>
   )
 }
