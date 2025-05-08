@@ -1,0 +1,140 @@
+/* Credits.css */
+
+.toggle-button {
+  position: fixed;
+  bottom: 4vh;
+  right: 0;
+  width: 4vw;
+  height: 8vh;
+  border-radius: 16px 0 0 16px;
+  background-color: #c0bfbf;
+  color: #797979;
+  padding: 0;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+  z-index: 100;
+}
+.toggle-button svg {
+  display: block;
+  color: #000
+}
+
+.toggle-button:hover {
+  background-color: #222222;
+}
+
+.toggle-button:hover svg{
+  color: rgb(255, 255, 255);
+
+}
+
+
+.side-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 33.333vw;
+  background-color: #f3f4f6;
+  box-shadow: -4px 0 6px rgba(0, 0, 0, 0.2);
+  transform: translateX(100%);
+  transition: transform 0.3s ease-in-out;
+  z-index: 1000;
+}
+
+.side-panel.open {
+  transform: translateX(0);
+  background: rgba(230, 230, 230, 0.87);
+border-radius: 16px;
+box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+backdrop-filter: blur(5px);
+-webkit-backdrop-filter: blur(5px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.panel-content {
+  padding: 20px;
+  height: 90%;
+  /* top: 0; */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-content h2 {
+  margin-bottom: 16px;
+  font-size: 2rem;
+}
+
+.credits-title{
+  height: 30%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.credits-subtitle{
+  font-size: 1em;
+}
+
+.credits-webamp{
+  font-size: 2em;
+  font-family: Typey;
+  text-transform: uppercase;
+}
+
+.credits-barren{
+  font-size: 1.6em;
+  font-weight: 900;
+}
+
+.credits-content{
+  max-width: 80%;
+    height: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    font-size: 1.2em;
+    text-align: justify;
+}
+.panel-content p {
+  font-family:'Courier New', Courier, monospace;
+}
+.panel-content  a{
+  text-decoration: underline;
+}
+
+.links{
+  width:80% ;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+
+
+.close-button{
+  position: fixed;
+  left: 3%;
+  top:1%;
+  font-size: 4em;
+  font-weight: 400;
+  padding: 8px 16px;
+  background-color: transparent;
+  border: none;
+  outline: none;
+}
+
+.close-button:hover{
+  border: none;
+  outline: none;
+}

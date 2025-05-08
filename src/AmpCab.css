@@ -11,6 +11,8 @@
   width: 5vw;
   right: 0;
   z-index: 1000;
+  font-size: 2em;
+  font-family: Typey;
   border-radius: 8px 0 0 8px;
   transition: 
   transform 0.2s ease,
