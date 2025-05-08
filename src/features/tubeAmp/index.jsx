@@ -155,7 +155,7 @@ const TubeAmp = forwardRef(function TubeAmp(
   const options = profiles.map(p => ({ value: p, label: p }));
   return (
     <div className="plugin amp-head">
-      <div htmlFor="profile">Amp style:</div>
+      <div htmlFor="profile"    className='label'>Amp style:</div>
       {/* <select
         id="profile"
         value={profileSrc}

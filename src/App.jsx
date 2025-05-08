@@ -11,8 +11,11 @@ import {
 import libfaustUrl from '@grame/faustwasm/libfaust-wasm/libfaust-wasm.js?url';
 import './App.scss';
 import Scene from './features/canvas/Scene';
-import Waveform from './features/controls/WaveForm';
+
 import WaveForm from './features/controls/WaveForm';
+import { MdFindReplace, MdOutlineInfo, MdPlayArrow, MdStop } from "react-icons/md";
+import { RxLoop } from "react-icons/rx";
+import Credits from './features/details/Credits';
 
 export default function App() {
   // ——— Audio engine & Faust ———
@@ -269,26 +272,41 @@ export default function App() {
 
         {/* <h2>🎸 Sample → TubeAmp + Cabinet → Master Out</h2> */}
 
-        <div>
+        <div className='file-play-stop'>
+       <div className='file-wrap'>
+
         <input type="file" accept="audio/*" id="audioFileInput" onChange={handleFile} className="hidden" />
-            <label htmlFor="audioFileInput" className="file-input-label">🎵 Select Audio File</label>
+       </div>
+            <label htmlFor="audioFileInput" className="file-input-label"><MdFindReplace size={24}/> Select Audio File</label>
             {audioFile && <span className="file-name">{audioFile.name}</span>}
-          <button onClick={playSample} disabled={!loaded || running}>
-            {running ? 'Playing…' : loaded ? 'Play Sample' : 'Load Sample'}
+       <div className="buttons-wrap">
+
+       <button onClick={playSample} disabled={!loaded || running} className={`play ${running ? 'active' : ''}`}>
+       <MdPlayArrow size={24}/> 
           </button>
-          <button onClick={stopSample} disabled={!running}>Stop</button>
+          <button onClick={stopSample} disabled={!running}><MdStop size={24}/></button>
+
+        {/* <div style={{ marginTop: '1rem' }}> */}
+        <button
+      className={`loop-toggle ${loop ? 'active' : ''}`}
+      onClick={() => setLoop(prev => !prev)}
+    >
+      <RxLoop size={24}/>
+      {/* {loop ? <RxLoop /> : 'Loop Off'} */}
+    </button>
+       </div>
+        {/* </div> */}
         </div>
 
-        <div style={{ marginTop: '1rem' }}>
-          <label>
-            <input type="checkbox" checked={loop} onChange={e => setLoop(e.target.checked)} /> Loop
-          </label>
-        </div>
+        <div style={{  display: 'flex', flexDirection: 'column'
+         }}
+       
+         >
+          <span   className='label'>
 
-        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column'
-         }}>
           {/* <label> */}
-            Master Gain:&nbsp;
+            Master:&nbsp;
+          </span>
            <div>
             <input
               type="range" min="0" max="10" step="0.01"
@@ -340,7 +358,9 @@ export default function App() {
         sliders={sliderMeta}
         values={sliderVals}
         onDragSlider={handleSliderDrag}
-      />      
+      />     
+      <Credits/>
+    
         <div style={{ marginTop: '1rem', }} className='trackviz'>
         {/* <Waveform buffer={bufRef.current} currentTime={currentTime} />
     <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>

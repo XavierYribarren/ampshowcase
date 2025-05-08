@@ -1,7 +1,8 @@
 .custom-dropdown {
   position: relative;
   width: 16vw;
-  font-family: sans-serif;
+  font-family: Typey;
+  letter-spacing: 2px;
   color: rgb(53, 53, 53);
 }
 
@@ -33,6 +34,7 @@
   width: 100%;
   background: rgba(230, 228, 228, 0.555);
   /* border: 1px solid #555; */
+  text-align: start;
   border-radius: 4px;
   list-style: none;
   margin: 0;
