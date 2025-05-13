@@ -286,16 +286,16 @@ export default function App() {
           </button>
           <button onClick={stopSample} disabled={!running}><MdStop size={24}/></button>
 
-        {/* <div style={{ marginTop: '1rem' }}> */}
+    
         <button
       className={`loop-toggle ${loop ? 'active' : ''}`}
       onClick={() => setLoop(prev => !prev)}
     >
       <RxLoop size={24}/>
-      {/* {loop ? <RxLoop /> : 'Loop Off'} */}
+
     </button>
        </div>
-        {/* </div> */}
+ 
         </div>
 
         <div style={{  display: 'flex', flexDirection: 'column'
@@ -319,19 +319,7 @@ export default function App() {
           {/* </label> */}
         </div>
 
-        {/* <div style={{ marginTop: '1rem' }}>
-          <label>
-            <input
-              type="checkbox"
-              checked={bypass}
-              onChange={e => setBypass(e.target.checked)}
-              /> Bypass Amp (direct sound)
-          </label>
-        </div>
-     */}
-        {/* Progress bar & timer */}
-
-        {/* Mount AmpCab only once Faust is ready */}
+      
         {audioContext && faustCompiler && faustFactory && (
           <AmpCab
           audioContext={audioContext}
@@ -362,11 +350,7 @@ export default function App() {
       <Credits/>
     
         <div style={{ marginTop: '1rem', }} className='trackviz'>
-        {/* <Waveform buffer={bufRef.current} currentTime={currentTime} />
-    <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
-      {new Date(currentTime * 1000).toISOString().substr(14, 5)} /
-      {new Date(duration    * 1000).toISOString().substr(14, 5)}
-    </div> */}
+
 <WaveForm
   buffer={bufRef.current}
   currentTime={currentTime}
