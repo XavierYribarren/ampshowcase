@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import TubeAmp  from './features/tubeAmp'
 import Cabinet  from './features/cabinet'
 import './AmpCab.css'
+import { RxCross1 } from 'react-icons/rx'
 
 export default function AmpCab({
   audioContext,
@@ -60,7 +61,7 @@ export default function AmpCab({
   onClick={() => setOpen(!open)}
   className={`ir-button ${open ? 'open' : ''}`}
 >
-  {open ? 'Close' : 'IR'}
+  {open ?         <RxCross1 color='black' /> : 'IR'}
 </button>
 
 <div className={`ir-panel ${open ? 'open' : 'closed'}`}>

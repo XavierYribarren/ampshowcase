@@ -43,8 +43,13 @@ border: 1px solid rgba(255, 255, 255, 0.3);
 .ir-button.open {
   outline: none;
   border: none;
-  right: 26vw;
-  background: linear-gradient(90deg,rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0) 100%);
+  right: 25vw;
+  display: flex;
+  width: auto;
+  height: 15vh;
+  align-items: center;
+  background-color: whitesmoke;
+  /* background: linear-gradient(90deg,rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0) 100%); */
 }
 
 .ir-button:focus{
