@@ -4,12 +4,36 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <title>WebAmp BarrenXY</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <!-- <script src="/libfaust/libfaust-wasm.js"></script>
-    <script src="/libfaust/FaustLibrary.js"></script> -->
+    <script  src="/libfaust/libfaust-wasm.js"></script>
+    <script  src="/libfaust/FaustLibrary.js"></script>
+    <!-- <script type="module">
+      import {
+        instantiateFaustModuleFromFile,
+        LibFaust,
+        FaustCompiler,
+        FaustMonoDspGenerator
+      } from './src/libfaust/dist/index.js';
+    
+      // Optionally preload the module
+      const wasmURL = '/libfaust/libfaust-wasm.js'; // or a bundled file
+      const module = await instantiateFaustModuleFromFile(wasmURL);
+      const libFaust = new LibFaust(module);
+      const compiler = await libFaust.createCompiler();
+    
+      Object.assign(window, {
+        FaustCompiler,
+        FaustMonoDspGenerator,
+        instantiateFaustModuleFromFile,
+        LibFaust,
+        libFaust,
+        compiler
+      });
+      window.dispatchEvent(new Event("faustwasm-ready"));
+    </script> -->
   </body>
 </html>
